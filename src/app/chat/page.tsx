@@ -55,22 +55,24 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-white overflow-hidden relative">
-      {/* Fixed Menu Toggle Button */}
-      <button
-        onClick={() => setSidebarExpanded(!sidebarExpanded)}
-        className="fixed top-6 left-[16px] z-50 p-3 hover:bg-white/30 rounded-lg transition"
-        title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
-      >
-        <Menu size={24} className="text-gray-700" />
-      </button>
-
       {/* Sidebar - Thin bar that expands */}
       <div
         className={`${
           sidebarExpanded ? 'w-64' : 'w-20'
-        } bg-[#E8E4F3] transition-all duration-300 ease-in-out flex flex-col items-center py-6 flex-shrink-0`}
+        } bg-[#E8E4F3] transition-all duration-300 ease-in-out flex flex-col items-center py-6 flex-shrink-0 relative`}
       >
-        {/* Spacer for fixed button */}
+        {/* Menu Toggle Button - fixed position in sidebar */}
+        <div className="absolute top-6 left-[16px]">
+          <button
+            onClick={() => setSidebarExpanded(!sidebarExpanded)}
+            className="p-3 hover:bg-white/30 rounded-lg transition"
+            title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            <Menu size={24} className="text-gray-700" />
+          </button>
+        </div>
+
+        {/* Spacer for button */}
         <div className="h-16 mb-6" />
 
         {/* New Chat Button */}

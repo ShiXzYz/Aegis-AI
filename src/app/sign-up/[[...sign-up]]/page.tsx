@@ -5,8 +5,8 @@ export default function SignUpPage() {
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="w-full max-w-md px-8">
         <h1 className="text-3xl font-semibold text-center mb-8">Sign up</h1>
-        <SignUp
-          forceRedirectUrl="/chat"
+        <SignUp 
+          forceRedirectUrl="/select-role"  // Changed to role selection
           appearance={{
             elements: {
               rootBox: "mx-auto",
@@ -20,9 +20,6 @@ export default function SignUpPage() {
             },
           }}
           signInUrl="/sign-in"
-          initialValues={{
-            strategy: 'oauth_google',
-          }}
         />
       </div>
     </div>
