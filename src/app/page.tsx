@@ -1,36 +1,34 @@
-import { SignInButton, SignUpButton, SignedIn, SignedOut } from '@clerk/nextjs'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { auth } from '@clerk/nextjs/server'
 
-export default function Home() {
+export default async function Home() {
+  const { userId } = await auth()
+  
+  if (userId) {
+    redirect('/chat')
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-primary-900 mb-4">Aegis AI</h1>
-        <p className="text-xl text-gray-700 mb-8">Smart AI routing for secure conversations</p>
-        
-        <SignedOut>
-          <div className="space-x-4">
-            <SignInButton mode="modal">
-              <button className="bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 transition">
-                Sign In
-              </button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <button className="bg-white text-primary-600 px-8 py-3 rounded-lg border-2 border-primary-600 hover:bg-primary-50 transition">
-                Sign Up
-              </button>
-            </SignUpButton>
-          </div>
-        </SignedOut>
-        
-        <SignedIn>
-          <Link
-            href="/chat"
-            className="inline-block bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 transition"
-          >
-            Go to Chat
+    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div className="text-center max-w-2xl">
+        <h1 className="text-7xl font-bold text-gray-900 mb-4">Aegis AI</h1>
+        <p className="text-xl text-gray-600 mb-12">
+          Smart AI routing for secure conversations
+        </p>
+
+        <div className="flex items-center justify-center gap-4">
+          <Link href="/sign-in">
+            <button className="bg-transparent text-gray-900 border-2 border-gray-300 px-8 py-3 rounded-xl hover:bg-gray-50 transition font-medium">
+              Sign In
+            </button>
           </Link>
-        </SignedIn>
+          <Link href="/sign-up">
+            <button className="bg-[#E8E4F3] text-gray-900 px-8 py-3 rounded-xl hover:bg-[#d8d0ed] transition font-medium">
+              Sign Up
+            </button>
+          </Link>
+        </div>
       </div>
     </div>
   )
