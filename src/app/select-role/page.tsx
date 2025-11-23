@@ -81,23 +81,23 @@ export default function SelectRolePage() {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4">
-      <div className="w-full max-w-2xl">
-        <h1 className="text-4xl font-semibold text-center mb-12 text-gray-900">Choose your role</h1>
+      <div className="w-full max-w-md">
+        <h1 className="text-3xl font-semibold text-center mb-8 text-gray-900">Log in as...</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
           {/* User Option */}
           <button
             onClick={() => selectRole('user')}
             disabled={loading}
-            className="group relative bg-white border-2 border-gray-200 rounded-3xl p-8 hover:border-[#E8E4F3] hover:bg-[#E8E4F3]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white border-2 border-gray-300 rounded-2xl p-6 hover:border-[#E8E4F3] hover:bg-[#E8E4F3]/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-20 h-20 bg-[#E8E4F3] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                <User size={36} className="text-gray-700" />
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-[#E8E4F3] rounded-full flex items-center justify-center flex-shrink-0">
+                <User size={28} className="text-gray-900" />
               </div>
-              <div>
-                <h3 className="font-semibold text-2xl text-gray-900 mb-2">User</h3>
-                <p className="text-sm text-gray-600">Access AI chat features and conversations</p>
+              <div className="text-left">
+                <h3 className="font-semibold text-lg text-gray-900">User</h3>
+                <p className="text-sm text-gray-700">AI Chat Feature</p>
               </div>
             </div>
           </button>
@@ -106,15 +106,15 @@ export default function SelectRolePage() {
           <button
             onClick={() => selectRole('admin')}
             disabled={loading}
-            className="group relative bg-white border-2 border-gray-200 rounded-3xl p-8 hover:border-[#E8E4F3] hover:bg-[#E8E4F3]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white border-2 border-gray-300 rounded-2xl p-6 hover:border-[#E8E4F3] hover:bg-[#E8E4F3]/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-20 h-20 bg-[#E8E4F3] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Shield size={36} className="text-gray-700" />
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-[#E8E4F3] rounded-full flex items-center justify-center flex-shrink-0">
+                <Shield size={28} className="text-gray-900" />
               </div>
-              <div>
-                <h3 className="font-semibold text-2xl text-gray-900 mb-2">Admin</h3>
-                <p className="text-sm text-gray-600">Manage settings and user permissions</p>
+              <div className="text-left">
+                <h3 className="font-semibold text-lg text-gray-900">Admin</h3>
+                <p className="text-sm text-gray-700">Management Settings</p>
               </div>
             </div>
           </button>
@@ -123,10 +123,10 @@ export default function SelectRolePage() {
         {/* Back Button */}
         <button
           onClick={() => signOut(() => router.push('/'))}
-          className="mt-12 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 transition mx-auto"
+          className="mt-8 flex items-center justify-center gap-2 text-gray-700 hover:text-gray-900 transition mx-auto"
         >
           <ArrowLeft size={20} />
-          <span>Back to home</span>
+          <span>Back</span>
         </button>
       </div>
     </div>
