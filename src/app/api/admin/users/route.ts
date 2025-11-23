@@ -6,7 +6,6 @@ export async function GET(request: Request) {
   try {
     const { sessionClaims } = await auth()
     const role = (sessionClaims?.publicMetadata as { role?: 'user' | 'admin' })?.role
-
     if (role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }

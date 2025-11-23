@@ -1,9 +1,26 @@
 import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
+import { FileText, Users, UsersRound, Database, Settings, MessageSquare } from 'lucide-react'
 
 export default function AdminDashboard() {
+  const stats = [
+    { label: 'Total Users', value: '24', icon: Users },
+    { label: 'Total Groups', value: '4', icon: UsersRound },
+    { label: 'Events Today', value: '156', icon: FileText },
+    { label: 'Active Models', value: '4', icon: Database },
+  ]
+
+  const quickActions = [
+    { name: 'Events', href: '/admin/logs', icon: FileText, description: 'View all user queries and AI responses' },
+    { name: 'Users', href: '/admin/users', icon: Users, description: 'Manage users and groups' },
+    { name: 'Groups', href: '/admin/groups', icon: UsersRound, description: 'Manage user groups' },
+    { name: 'Rules', href: '/admin/rules', icon: Settings, description: 'Configure AI routing rules' },
+    { name: 'Data Sources', href: '/admin/data-sources', icon: Database, description: 'Manage AI models' },
+    { name: 'Chat', href: '/chat', icon: MessageSquare, description: 'Access the AI chat' },
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F5F3FF]">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -12,43 +29,45 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link href="/admin/logs">
-            <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition cursor-pointer">
-              <h3 className="text-lg font-semibold mb-2">Event Logs</h3>
-              <p className="text-gray-600">View all user queries and AI responses</p>
-            </div>
-          </Link>
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {stats.map((stat) => {
+            const Icon = stat.icon
+            return (
+              <div key={stat.label} className="bg-white rounded-lg p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">{stat.label}</span>
+                  <Icon size={20} className="text-primary-600" />
+                </div>
+                <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
+              </div>
+            )
+          })}
+        </div>
 
-          <Link href="/admin/users">
-            <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition cursor-pointer">
-              <h3 className="text-lg font-semibold mb-2">User Management</h3>
-              <p className="text-gray-600">Manage users and groups</p>
-            </div>
-          </Link>
-
-          <Link href="/admin/rules">
-            <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition cursor-pointer">
-              <h3 className="text-lg font-semibold mb-2">Rules Configuration</h3>
-              <p className="text-gray-600">Configure AI routing rules</p>
-            </div>
-          </Link>
-
-          <Link href="/admin/groups">
-            <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition cursor-pointer">
-              <h3 className="text-lg font-semibold mb-2">Groups</h3>
-              <p className="text-gray-600">Manage user groups</p>
-            </div>
-          </Link>
-
-          <Link href="/chat">
-            <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition cursor-pointer">
-              <h3 className="text-lg font-semibold mb-2">Chat Interface</h3>
-              <p className="text-gray-600">Access the AI chat</p>
-            </div>
-          </Link>
+        {/* Quick Actions */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {quickActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <Link key={action.name} href={action.href}>
+                  <div className="bg-white rounded-lg p-6 shadow-sm hover:shadow-lg transition cursor-pointer">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <Icon size={20} className="text-primary-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold">{action.name}</h3>
+                    </div>
+                    <p className="text-gray-600 text-sm">{action.description}</p>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/',
+  '^/$',
   '/select-role',
   '/api(.*)'
 ])
@@ -12,6 +12,9 @@ const isPublicRoute = createRouteMatcher([
 const isAdminRoute = createRouteMatcher(['/admin(.*)'])
 
 export default clerkMiddleware(async (auth, request) => {
+  const url = new URL(request.url)
+  const roleSetCookie = request.cookies.get('role-just-set')
+
   // Allow public routes and API routes
   if (isPublicRoute(request)) {
     // Still protect API routes but don't redirect
@@ -21,26 +24,49 @@ export default clerkMiddleware(async (auth, request) => {
     return NextResponse.next()
   }
 
+ // Bypass ALL role logic for 30 seconds after role is set
+if (url.searchParams.has('role-set') || roleSetCookie) {
+  console.log('⚠️ BYPASSING ALL CHECKS — role was just set')
+
+  // Still require login
+  await auth.protect()
+
+  const res = NextResponse.next()
+
+  // If role-set param is present and cookie wasn't set yet → set bypass cookie
+  if (url.searchParams.has('role-set') && !roleSetCookie) {
+    res.cookies.set('role-just-set', 'true', {
+      maxAge: 30,
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax'
+    })
+    console.log('✅ Cookie set — bypass active for 30 seconds')
+  }
+
+  // 🔥 CRITICAL: Immediately exit and SKIP ALL ADMIN CHECKS
+  return res
+}
+
+
   // Protect all other routes
   const { userId, sessionClaims } = await auth.protect()
 
   // Check if user has selected a role
   const role = (sessionClaims?.publicMetadata as { role?: 'user' | 'admin' })?.role
 
-  // Skip role check if coming from role selection (allow one redirect)
-  const url = new URL(request.url)
-  if (url.searchParams.has('role-set')) {
-    return NextResponse.next()
-  }
-
   // If no role, redirect to role selection
   if (!role && !request.url.includes('/select-role')) {
+    console.log('No role found, redirecting to select-role')
     return NextResponse.redirect(new URL('/select-role', request.url))
   }
 
-  // Protect admin routes
-  if (isAdminRoute(request) && role !== 'admin') {
-    return NextResponse.redirect(new URL('/chat', request.url))
+  // Protect admin routes - only redirect if role is explicitly NOT admin
+  if (isAdminRoute(request)) {
+    if (role !== 'admin') {
+      console.log('Non-admin trying to access admin route, redirecting to chat')
+      return NextResponse.redirect(new URL('/chat', request.url))
+    }
   }
 
   return NextResponse.next()

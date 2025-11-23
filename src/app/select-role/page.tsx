@@ -60,9 +60,11 @@ export default function SelectRolePage() {
         console.error('Error reloading user:', reloadError)
       }
 
-      // Wait a bit longer for the session to fully update
-      console.log('Waiting for session to propagate...')
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Wait longer for the session to fully update
+      // Admin roles may need more time to propagate
+      const waitTime = role === 'admin' ? 2000 : 1000
+      console.log(`Waiting ${waitTime}ms for session to propagate...`)
+      await new Promise(resolve => setTimeout(resolve, waitTime))
 
       console.log('User session reloaded, redirecting to:', role === 'admin' ? '/admin?role-set=true' : '/chat?role-set=true')
 

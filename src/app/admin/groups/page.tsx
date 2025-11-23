@@ -4,56 +4,56 @@ import { useState } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { CheckSquare, Square, X } from 'lucide-react'
 
-interface User {
+interface Group {
   id: string
   initial: string
   name: string
-  username: string
-  groups: string[]
+  description: string
+  members: string[]
   checked: boolean
 }
 
-export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([
-    { id: '1', initial: 'A', name: 'Aleeza Khan', username: 'aleeza', groups: ['Employees', 'Developers'], checked: false },
-    { id: '2', initial: 'B', name: 'Brian Ryu', username: 'brian', groups: ['Developers'], checked: false },
-    { id: '3', initial: 'S', name: 'Shreyas Mayya', username: 'shreyas', groups: ['Designers'], checked: false },
+export default function GroupsPage() {
+  const [groups, setGroups] = useState<Group[]>([
+    { id: '1', initial: 'D', name: 'Designers', description: 'Group of all designers in company', members: ['shreyas'], checked: false },
+    { id: '2', initial: 'D', name: 'Developers', description: 'All software developers', members: ['brian', 'aleeza'], checked: false },
+    { id: '3', initial: 'E', name: 'Employees', description: 'General employees', members: ['aleeza'], checked: false },
+    { id: '4', initial: 'H', name: 'High Security', description: 'High security clearance', members: [], checked: false },
   ])
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
 
-  const toggleUser = (id: string) => {
-    setUsers(users.map(user => 
-      user.id === id ? { ...user, checked: !user.checked } : user
+  const toggleGroup = (id: string) => {
+    setGroups(groups.map(group => 
+      group.id === id ? { ...group, checked: !group.checked } : group
     ))
   }
 
   return (
-    <AdminLayout title="Users">
+    <AdminLayout title="Groups">
       <div className="bg-white rounded-lg shadow-sm">
         <div className="divide-y divide-gray-200">
-          {users.map((user) => (
-            <div key={user.id} className="p-4 hover:bg-gray-50 transition">
+          {groups.map((group) => (
+            <div key={group.id} className="p-4 hover:bg-gray-50 transition">
               <div className="flex items-center gap-4">
                 {/* Checkbox */}
-                <button onClick={() => toggleUser(user.id)} className="text-primary-600">
-                  {user.checked ? <CheckSquare size={20} /> : <Square size={20} />}
+                <button onClick={() => toggleGroup(group.id)} className="text-primary-600">
+                  {group.checked ? <CheckSquare size={20} /> : <Square size={20} />}
                 </button>
 
-                {/* User Avatar */}
+                {/* Group Avatar */}
                 <button
-                  onClick={() => setSelectedUser(user)}
+                  onClick={() => setSelectedGroup(group)}
                   className="w-12 h-12 rounded-full bg-primary-200 flex items-center justify-center flex-shrink-0 hover:bg-primary-300 transition"
                 >
-                  <span className="font-semibold text-primary-800">{user.initial}</span>
+                  <span className="font-semibold text-primary-800">{group.initial}</span>
                 </button>
 
-                {/* User Info */}
+                {/* Group Info */}
                 <button
-                  onClick={() => setSelectedUser(user)}
+                  onClick={() => setSelectedGroup(group)}
                   className="flex-1 text-left"
                 >
-                  <div className="font-medium text-gray-900">{user.name}</div>
-                  <div className="text-sm text-gray-500">({user.username})</div>
+                  <div className="font-medium text-gray-900">{group.name}</div>
                 </button>
               </div>
             </div>
@@ -61,23 +61,23 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* User Details Modal */}
-      {selectedUser && (
+      {/* Group Details Modal */}
+      {selectedGroup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden">
             {/* Header */}
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-primary-200 flex items-center justify-center">
-                  <span className="font-semibold text-primary-800">{selectedUser.initial}</span>
+                  <span className="font-semibold text-primary-800">{selectedGroup.initial}</span>
                 </div>
                 <div>
-                  <div className="font-semibold text-lg">{selectedUser.name}</div>
-                  <div className="text-sm text-gray-500">{selectedUser.username}</div>
+                  <div className="font-semibold text-lg">{selectedGroup.name}</div>
+                  <div className="text-sm text-gray-500">{selectedGroup.description}</div>
                 </div>
               </div>
               <button
-                onClick={() => setSelectedUser(null)}
+                onClick={() => setSelectedGroup(null)}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X size={20} />
@@ -87,14 +87,14 @@ export default function UsersPage() {
             {/* Content */}
             <div className="p-6">
               <div className="mb-6 bg-gray-50 rounded-lg p-6 flex items-center justify-center h-32">
-                <div className="text-gray-400">User details placeholder</div>
+                <div className="text-gray-400">Group icons placeholder</div>
               </div>
 
               <div>
-                <h3 className="font-semibold text-lg mb-2">{selectedUser.name}</h3>
-                <p className="text-gray-600 mb-4">{selectedUser.username}</p>
+                <h3 className="font-semibold text-lg mb-2">{selectedGroup.name}</h3>
+                <p className="text-gray-600 mb-4">{selectedGroup.description}</p>
                 <p className="text-sm text-gray-600">
-                  Member of groups: {selectedUser.groups.join(', ')}
+                  Members: {selectedGroup.members.length > 0 ? selectedGroup.members.join(', ') : 'No members'}
                 </p>
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function UsersPage() {
             {/* Footer */}
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
               <button
-                onClick={() => setSelectedUser(null)}
+                onClick={() => setSelectedGroup(null)}
                 className="px-6 py-2 rounded-full border border-gray-300 hover:bg-gray-50 transition"
               >
                 Close
