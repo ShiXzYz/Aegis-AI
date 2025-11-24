@@ -10,9 +10,23 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
+    // Get admin's organization_id
+    const { data: adminUser } = await supabaseAdmin
+      .from('users')
+      .select('organization_id')
+      .eq('clerk_id', userId)
+      .single()
+
+    // If admin has no organization, return empty list
+    if (!adminUser || !adminUser.organization_id) {
+      return NextResponse.json({ users: [] })
+    }
+
+    // Fetch users from the same organization as the admin
     const { data: users, error: usersError } = await supabaseAdmin
       .from('users')
       .select('*')
+      .eq('organization_id', adminUser.organization_id)
       .order('created_at', { ascending: false })
 
     if (usersError) throw usersError

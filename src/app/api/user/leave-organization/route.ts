@@ -21,17 +21,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Get default organization
-    const { data: defaultOrg } = await supabaseAdmin
-      .from('organizations')
-      .select('id')
-      .eq('name', 'Default Organization')
-      .single()
+    if (!user.organization_id) {
+      return NextResponse.json({ error: 'You are not in any organization' }, { status: 400 })
+    }
 
-    // Update user to remove from current organization (set to default)
+    // Update user to remove from current organization (set to null)
     const { error: updateError } = await supabaseAdmin
       .from('users')
-      .update({ organization_id: defaultOrg?.id || null })
+      .update({ organization_id: null })
       .eq('id', user.id)
 
     if (updateError) {

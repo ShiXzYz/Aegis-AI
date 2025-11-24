@@ -27,6 +27,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -35,15 +36,21 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true)
+      setError(null)
       const response = await fetch('/api/admin/users', {
         credentials: 'include', // send cookies for Clerk auth
       })
-      if (!response.ok) throw new Error('Failed to fetch users')
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to fetch users')
+      }
 
       const data = await response.json()
       setUsers(data.users || [])
     } catch (error) {
       console.error('Error fetching users:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch users')
     } finally {
       setLoading(false)
     }
@@ -65,8 +72,20 @@ export default function UsersPage() {
         <div className="divide-y divide-gray-200">
           {loading ? (
             <div className="p-8 text-center text-black">Loading users...</div>
+          ) : error ? (
+            <div className="p-8 text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              {error.includes('organization') && (
+                <button
+                  onClick={() => window.location.href = '/join-organization'}
+                  className="px-6 py-3 bg-[#E8E4F3] text-black rounded-full hover:bg-[#d8d0ed] transition font-medium"
+                >
+                  Join an Organization
+                </button>
+              )}
+            </div>
           ) : users.length === 0 ? (
-            <div className="p-8 text-center text-black">No users found</div>
+            <div className="p-8 text-center text-black">No users found in your organization</div>
           ) : (
             users.map((user) => (
               <div key={user.id} className="p-4 hover:bg-gray-50 transition">
@@ -105,7 +124,7 @@ export default function UsersPage() {
                       ? 'bg-purple-100 text-purple-800'
                       : 'bg-gray-100 text-black'
                   }`}>
-                    {user.role}
+                    {user.role === 'admin' ? 'Admin' : 'User'}
                   </span>
                 </div>
               </div>
