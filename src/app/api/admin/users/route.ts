@@ -6,43 +6,41 @@ import { isAdmin } from '@/lib/auth'
 export async function GET(request: Request) {
   try {
     const { userId } = await auth()
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check if user is admin
-    const admin = await isAdmin()
-    if (!admin) {
+    if (!userId || !(await isAdmin())) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
-    // Fetch all users with their organization and groups
-    const { data: users, error } = await supabaseAdmin
+    const { data: users, error: usersError } = await supabaseAdmin
       .from('users')
-      .select(`
-        *,
-        organization:organization_id (
-          name,
-          join_code
-        ),
-        groups:group_id (
-          name
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching users:', error)
-      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
-    }
+    if (usersError) throw usersError
 
-    return NextResponse.json({ users })
+    const { data: organizations } = await supabaseAdmin
+      .from('organizations')
+      .select('id, name, join_code')
+
+    const { data: groups } = await supabaseAdmin
+      .from('groups')
+      .select('id, name')
+
+    const orgMap = new Map(organizations?.map(org => [org.id, org]) || [])
+    const groupMap = new Map(groups?.map(group => [group.id, group]) || [])
+
+    const enrichedUsers = users?.map(user => ({
+      ...user,
+      organization: user.organization_id ? orgMap.get(user.organization_id) : null,
+      groups: user.group_id ? [groupMap.get(user.group_id)].filter(Boolean) : []
+    }))
+
+    return NextResponse.json({ users: enrichedUsers })
   } catch (error) {
     console.error('Admin users API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
 
 export async function PATCH(request: Request) {
   try {

@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     }
 
     // --- Generate AI response ---
-    const aiModel = 'gemini-pro'
+    const aiModel = 'gemini-2.5-flash'
     const sensitivityLevel = 'low' // placeholder, implement content filtering later
 
     const model = genAI.getGenerativeModel({

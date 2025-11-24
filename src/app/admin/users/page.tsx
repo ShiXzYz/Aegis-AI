@@ -15,8 +15,11 @@ interface User {
   organization?: {
     name: string
     join_code: string
-  }
-  groups?: { name: string }[]
+  } | null
+  groups?: {
+    id: string
+    name: string
+  } | null
   checked?: boolean
 }
 
@@ -173,16 +176,12 @@ export default function UsersPage() {
               </div>
 
               {/* Groups */}
-              {selectedUser.groups && selectedUser.groups.length > 0 && (
+              {selectedUser.groups && (
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">Groups</label>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedUser.groups.map((group, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-gray-100 rounded-full text-sm text-black">
-                        {group.name}
-                      </span>
-                    ))}
-                  </div>
+                  <label className="block text-sm font-medium text-black mb-1">Group</label>
+                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-black inline-block">
+                    {selectedUser.groups.name}
+                  </span>
                 </div>
               )}
 
