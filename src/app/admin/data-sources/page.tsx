@@ -53,8 +53,8 @@ export default function DataSourcesPage() {
         {/* Header */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Database size={24} className="text-primary-600" />
-            <h2 className="text-lg font-semibold">Data Sources</h2>
+            <Database size={24} className="text-gray-900" />
+            <h2 className="text-lg font-semibold text-gray-900">Data Sources</h2>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
@@ -78,7 +78,7 @@ export default function DataSourcesPage() {
                 {/* Source Info */}
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">{source.name}</div>
-                  <div className="text-sm text-gray-500">{source.type}</div>
+                  <div className="text-sm text-gray-900">{source.type}</div>
                 </div>
 
                 {/* Status */}
@@ -107,12 +107,21 @@ export default function DataSourcesPage() {
 
       {/* Add Data Source Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden">
+        <div
+          className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setShowAddModal(false)
+            setNewSource({ name: '', apiKey: '', type: '' })
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="p-6 border-b border-gray-200">
-              <h3 className="font-semibold text-lg">Add Data Source</h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <h3 className="font-semibold text-lg text-gray-900">Add Data Source</h3>
+              <p className="text-sm text-gray-900 mt-1">
                 Configure a new AI model or data source
               </p>
             </div>

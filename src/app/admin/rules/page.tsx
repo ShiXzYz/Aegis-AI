@@ -105,7 +105,7 @@ export default function RulesPage() {
             >
               <p className="text-sm text-gray-700">{rule.description}</p>
               {rule.models.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-900 mt-1">
                   Models: {rule.models.join(', ')}
                 </p>
               )}
@@ -123,7 +123,7 @@ export default function RulesPage() {
               <h3 className="font-semibold text-lg">
                 {selectedRule.level.charAt(0).toUpperCase() + selectedRule.level.slice(1)} Rule
               </h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-900 mt-1">
                 If the user query to the chat-bot is deemed {selectedRule.level}, please route the query to:
               </p>
             </div>

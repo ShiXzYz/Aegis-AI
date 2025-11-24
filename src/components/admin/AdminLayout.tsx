@@ -3,7 +3,7 @@
 import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Settings, FileText, Database, UsersRound, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, FileText, Database, UsersRound, Menu, X, Building2 } from 'lucide-react'
 import { useState } from 'react'
 
 interface AdminLayoutProps {
@@ -19,6 +19,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Events', href: '/admin/logs', icon: FileText },
     { name: 'Users', href: '/admin/users', icon: Users },
+    { name: 'Organizations', href: '/admin/organizations', icon: Building2 },
     { name: 'Groups', href: '/admin/groups', icon: UsersRound },
     { name: 'Data Sources', href: '/admin/data-sources', icon: Database },
     { name: 'Rules', href: '/admin/rules', icon: Settings },
@@ -37,7 +38,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="lg:hidden p-3 hover:bg-white/30 rounded-lg transition mb-6"
         >
-          {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          {sidebarOpen ? <X size={24} className="text-gray-900" /> : <Menu size={24} className="text-gray-900" />}
         </button>
 
         {/* Navigation Icons */}
@@ -52,7 +53,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                 className={`w-12 h-12 flex items-center justify-center rounded-lg transition ${
                   isActive
                     ? 'bg-primary-600 text-white'
-                    : 'text-gray-700 hover:bg-white/30'
+                    : 'text-gray-900 hover:bg-white/30'
                 }`}
                 title={item.name}
               >
@@ -65,7 +66,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         {/* Settings at bottom */}
         <Link
           href="/admin/settings"
-          className="w-12 h-12 flex items-center justify-center rounded-lg text-gray-700 hover:bg-white/30 transition"
+          className="w-12 h-12 flex items-center justify-center rounded-lg text-gray-900 hover:bg-white/30 transition"
           title="Settings"
         >
           <Settings size={24} />
@@ -82,9 +83,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
               >
-                <Menu size={24} />
+                <Menu size={24} className="text-gray-900" />
               </button>
-              <h1 className="text-2xl font-bold">{title}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
             </div>
             <UserButton afterSignOutUrl="/" />
           </div>

@@ -1,54 +1,82 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { getAllUsers, updateUserGroup } from '@/lib/supabase-admin'
+import { supabase } from '@/lib/supabase'
+import { isAdmin } from '@/lib/auth'
 
 export async function GET(request: Request) {
   try {
-    const { sessionClaims } = await auth()
-    const role = (sessionClaims?.publicMetadata as { role?: 'user' | 'admin' })?.role
-    if (role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    const { userId } = await auth()
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get organization ID from query params or user metadata
-    const { searchParams } = new URL(request.url)
-    const organizationId = searchParams.get('organizationId')
-
-    if (!organizationId) {
-      return NextResponse.json({ error: 'Organization ID required' }, { status: 400 })
+    // Check if user is admin
+    const admin = await isAdmin()
+    if (!admin) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
-    const { data, error } = await getAllUsers(organizationId)
+    // Fetch all users with their groups
+    const { data: users, error } = await supabase
+      .from('users')
+      .select(`
+        *,
+        groups:group_id (
+          id,
+          name
+        )
+      `)
+      .order('created_at', { ascending: false })
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Error fetching users:', error)
+      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 
-    return NextResponse.json({ users: data })
+    return NextResponse.json({ users })
   } catch (error) {
+    console.error('Admin users API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 export async function PATCH(request: Request) {
   try {
-    const { sessionClaims } = await auth()
-    const role = (sessionClaims?.publicMetadata as { role?: 'user' | 'admin' })?.role
+    const { userId: authUserId } = await auth()
 
-    if (role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    if (!authUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { userId, groupId } = await request.json()
+    // Check if user is admin
+    const admin = await isAdmin()
+    if (!admin) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
+    }
 
-    const { data, error } = await updateUserGroup(userId, groupId)
+    const { userId, groupId, role } = await request.json()
+
+    // Update user's group or role
+    const updates: any = {}
+    if (groupId !== undefined) updates.group_id = groupId
+    if (role !== undefined) updates.role = role
+
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Error updating user:', error)
+      return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json({ success: true, user: data })
   } catch (error) {
+    console.error('Admin users update error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

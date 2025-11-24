@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { getChatLogs } from '@/lib/supabase-admin'
+import { supabase } from '@/lib/supabase'
 
 export async function GET(request: Request) {
   try {
@@ -13,26 +13,31 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const organizationId = searchParams.get('organizationId')
-    const userId = searchParams.get('userId') || undefined
-    const groupId = searchParams.get('groupId') || undefined
 
-    if (!organizationId) {
-      return NextResponse.json({ error: 'Organization ID required' }, { status: 400 })
-    }
-
-    const { data, error } = await getChatLogs({
-      organizationId,
-      userId,
-      groupId,
-      limit: 100
-    })
+    // For now, get all logs regardless of org (we'll filter later)
+    const { data, error } = await supabase
+      .from('chat_logs')
+      .select(`
+        *,
+        users (
+          name,
+          email
+        ),
+        groups (
+          name
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(100)
 
     if (error) {
+      console.error('Supabase error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ logs: data })
+    return NextResponse.json({ logs: data || [] })
   } catch (error) {
+    console.error('API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

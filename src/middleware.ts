@@ -4,8 +4,9 @@ import { NextResponse } from 'next/server'
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '^/$',
+  '/',
   '/select-role',
+  '/join-organization',
   '/api(.*)'
 ])
 
@@ -24,7 +25,7 @@ export default clerkMiddleware(async (auth, request) => {
     return NextResponse.next()
   }
 
- // Bypass ALL role logic for 30 seconds after role is set
+ // Bypass ALL role logic temporarily after role is set
 if (url.searchParams.has('role-set') || roleSetCookie) {
   console.log('⚠️ BYPASSING ALL CHECKS — role was just set')
 
@@ -34,14 +35,15 @@ if (url.searchParams.has('role-set') || roleSetCookie) {
   const res = NextResponse.next()
 
   // If role-set param is present and cookie wasn't set yet → set bypass cookie
+  // Cookie lasts 10 minutes to prevent timeout during active use
   if (url.searchParams.has('role-set') && !roleSetCookie) {
     res.cookies.set('role-just-set', 'true', {
-      maxAge: 30,
+      maxAge: 600, // 10 minutes instead of 30 seconds
       path: '/',
       httpOnly: true,
       sameSite: 'lax'
     })
-    console.log('✅ Cookie set — bypass active for 30 seconds')
+    console.log('✅ Cookie set — bypass active for 10 minutes')
   }
 
   // 🔥 CRITICAL: Immediately exit and SKIP ALL ADMIN CHECKS

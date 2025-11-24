@@ -1,74 +1,91 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import AdminLayout from '@/components/admin/AdminLayout'
-import { Search, CheckSquare, Square } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { UserButton } from '@clerk/nextjs'
+import Link from 'next/link'
+import { ArrowLeft, Search, Filter } from 'lucide-react'
 
-interface LogEntry {
+interface ChatLog {
   id: string
-  user: string
-  username: string
-  message: string
-  timestamp: string
-  sensitivityLevel: 'public' | 'internal' | 'confidential' | 'restricted'
-  checked: boolean
+  query: string
+  response: string
+  ai_model: string
+  sensitivity_level: string
+  created_at: string
+  users: {
+    name: string
+    email: string
+  }
+  groups: {
+    name: string
+  } | null
+}
+
+interface Stats {
+  totalQueries: number
+  todayQueries: number
+  uniqueUsers: number
 }
 
 export default function LogsPage() {
-  const [logs, setLogs] = useState<LogEntry[]>([
-    {
-      id: '1',
-      user: 'B',
-      username: 'brian',
-      message: 'User brian entered confidential data into the prompt. The prompt was automatically redirected to the high-security LLM. No data is believed to have been compromised...',
-      timestamp: new Date().toISOString(),
-      sensitivityLevel: 'confidential',
-      checked: false,
-    },
-    {
-      id: '2',
-      user: 'S',
-      username: 'shreyas',
-      message: 'User shreyas entered a prompt that requires access to the high-security LLM. shreyas is not in a group that can access this LLM, so the query was blocked.',
-      timestamp: new Date().toISOString(),
-      sensitivityLevel: 'restricted',
-      checked: false,
-    },
-  ])
+  const [logs, setLogs] = useState<ChatLog[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectAll, setSelectAll] = useState(false)
+  const [stats, setStats] = useState<Stats>({ totalQueries: 0, todayQueries: 0, uniqueUsers: 0 })
 
-  const toggleSelectAll = () => {
-    setSelectAll(!selectAll)
-    setLogs(logs.map(log => ({ ...log, checked: !selectAll })))
-  }
+  useEffect(() => {
+    fetchLogs()
+  }, [searchQuery])
 
-  const toggleLog = (id: string) => {
-    setLogs(logs.map(log => 
-      log.id === id ? { ...log, checked: !log.checked } : log
-    ))
-  }
+  const fetchLogs = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (searchQuery) params.append('search', searchQuery)
 
-  const filteredLogs = logs.filter(log =>
-    log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.username.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+      const response = await fetch(`/api/admin/logs?${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch logs')
+      }
 
-  const getSensitivityColor = (level: string) => {
-    switch (level) {
-      case 'public': return 'bg-green-100 text-green-800'
-      case 'internal': return 'bg-blue-100 text-blue-800'
-      case 'confidential': return 'bg-orange-100 text-orange-800'
-      case 'restricted': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      const data = await response.json()
+      setLogs(data.logs || [])
+      setStats(data.stats || { totalQueries: 0, todayQueries: 0, uniqueUsers: 0 })
+    } catch (error) {
+      console.error('Error fetching logs:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
+  const filteredLogs = logs.filter(log => 
+    log.query.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.users?.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   return (
-    <AdminLayout title="Events">
-      <div className="bg-white rounded-lg shadow-sm">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/admin">
+                <button className="p-2 hover:bg-gray-100 rounded-lg transition">
+                  <ArrowLeft size={20} className="text-gray-900" />
+                </button>
+              </Link>
+              <h1 className="text-2xl font-bold text-gray-900">Event Logs</h1>
+            </div>
+            <UserButton afterSignOutUrl="/" />
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Search Bar */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
@@ -81,48 +98,105 @@ export default function LogsPage() {
           </div>
         </div>
 
-        {/* Logs List */}
-        <div className="divide-y divide-gray-200">
-          {/* Select All Header */}
-          <div className="p-4 flex items-center gap-3 bg-gray-50">
-            <button onClick={toggleSelectAll} className="text-primary-600">
-              {selectAll ? <CheckSquare size={20} /> : <Square size={20} />}
-            </button>
-            <span className="text-sm font-medium text-gray-700">Select All</span>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg p-4 shadow">
+            <p className="text-sm text-gray-900 font-medium">Total Queries</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.totalQueries}</p>
           </div>
+          <div className="bg-white rounded-lg p-4 shadow">
+            <p className="text-sm text-gray-900 font-medium">Today</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.todayQueries}</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow">
+            <p className="text-sm text-gray-900 font-medium">Unique Users (Today)</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.uniqueUsers}</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow">
+            <p className="text-sm text-gray-900 font-medium">AI Models Used</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {new Set(logs.map(log => log.ai_model)).size}
+            </p>
+          </div>
+        </div>
 
-          {/* Log Entries */}
-          {filteredLogs.map((log) => (
-            <div key={log.id} className="p-4 hover:bg-gray-50 transition">
-              <div className="flex items-start gap-4">
-                {/* Checkbox */}
-                <button onClick={() => toggleLog(log.id)} className="text-primary-600 mt-1">
-                  {log.checked ? <CheckSquare size={20} /> : <Square size={20} />}
-                </button>
-
-                {/* User Avatar */}
-                <div className="w-10 h-10 rounded-full bg-primary-200 flex items-center justify-center flex-shrink-0">
-                  <span className="font-semibold text-primary-800">{log.user}</span>
-                </div>
-
-                {/* Log Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-gray-900">User {log.username}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getSensitivityColor(log.sensitivityLevel)}`}>
-                      {log.sensitivityLevel}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">{log.message}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {new Date(log.timestamp).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
+        {/* Logs Table */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
+                  User
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
+                  Query
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
+                  AI Model
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
+                  Sensitivity
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
+                  Time
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    Loading logs...
+                  </td>
+                </tr>
+              ) : filteredLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    No logs found
+                  </td>
+                </tr>
+              ) : (
+                filteredLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {log.users?.name || 'Unknown'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {log.users?.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 max-w-md truncate">
+                        {log.query}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {log.ai_model}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        log.sensitivity_level === 'high' 
+                          ? 'bg-red-100 text-red-800'
+                          : log.sensitivity_level === 'medium'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {log.sensitivity_level}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(log.created_at).toLocaleString()}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
-    </AdminLayout>
+    </div>
   )
 }

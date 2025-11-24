@@ -1,11 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { UserButton } from '@clerk/nextjs'
-import { Menu, Plus, Settings, X } from 'lucide-react'
+import { UserButton, useUser } from '@clerk/nextjs'
+import { Menu, Plus, Settings, X, Building2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(true)
+  const { user } = useUser()
+  const router = useRouter()
+
+  const isAdmin = (user?.publicMetadata as { role?: string })?.role === 'admin'
 
   return (
     <>
@@ -25,11 +30,22 @@ export default function Sidebar() {
         }`}
       >
         {/* New Chat Button */}
-        <div className="p-6 pt-20">
-          <button className="w-full bg-white/50 hover:bg-white/70 text-gray-700 py-3 px-4 rounded-full transition flex items-center justify-center gap-2 font-medium">
+        <div className="p-6 pt-20 space-y-3">
+          <button className="w-full bg-white/50 hover:bg-white/70 text-black py-3 px-4 rounded-full transition flex items-center justify-center gap-2 font-medium">
             <Plus size={20} />
             New chat
           </button>
+
+          {/* Join Organization Button - only for non-admin users */}
+          {!isAdmin && (
+            <button
+              onClick={() => router.push('/join-organization')}
+              className="w-full bg-white/50 hover:bg-white/70 text-black py-3 px-4 rounded-full transition flex items-center justify-center gap-2 font-medium"
+            >
+              <Building2 size={20} />
+              Join Organization
+            </button>
+          )}
         </div>
 
         {/* Chat History - will populate later */}
@@ -41,7 +57,7 @@ export default function Sidebar() {
 
         {/* Settings at bottom */}
         <div className="p-6">
-          <button className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition">
+          <button className="flex items-center gap-2 text-black hover:text-black transition">
             <Settings size={20} />
           </button>
         </div>

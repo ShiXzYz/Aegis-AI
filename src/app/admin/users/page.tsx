@@ -53,7 +53,7 @@ export default function UsersPage() {
                   className="flex-1 text-left"
                 >
                   <div className="font-medium text-gray-900">{user.name}</div>
-                  <div className="text-sm text-gray-500">({user.username})</div>
+                  <div className="text-sm text-gray-900">({user.username})</div>
                 </button>
               </div>
             </div>
@@ -63,8 +63,14 @@ export default function UsersPage() {
 
       {/* User Details Modal */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden">
+        <div
+          className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedUser(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -72,8 +78,8 @@ export default function UsersPage() {
                   <span className="font-semibold text-primary-800">{selectedUser.initial}</span>
                 </div>
                 <div>
-                  <div className="font-semibold text-lg">{selectedUser.name}</div>
-                  <div className="text-sm text-gray-500">{selectedUser.username}</div>
+                  <div className="font-semibold text-lg text-gray-900">{selectedUser.name}</div>
+                  <div className="text-sm text-gray-900">{selectedUser.username}</div>
                 </div>
               </div>
               <button
@@ -87,13 +93,13 @@ export default function UsersPage() {
             {/* Content */}
             <div className="p-6">
               <div className="mb-6 bg-gray-50 rounded-lg p-6 flex items-center justify-center h-32">
-                <div className="text-gray-400">User details placeholder</div>
+                <div className="text-gray-600">User details placeholder</div>
               </div>
 
               <div>
-                <h3 className="font-semibold text-lg mb-2">{selectedUser.name}</h3>
-                <p className="text-gray-600 mb-4">{selectedUser.username}</p>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-semibold text-lg mb-2 text-gray-900">{selectedUser.name}</h3>
+                <p className="text-gray-900 mb-4">{selectedUser.username}</p>
+                <p className="text-sm text-gray-900">
                   Member of groups: {selectedUser.groups.join(', ')}
                 </p>
               </div>

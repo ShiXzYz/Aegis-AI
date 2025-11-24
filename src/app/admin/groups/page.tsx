@@ -63,8 +63,14 @@ export default function GroupsPage() {
 
       {/* Group Details Modal */}
       {selectedGroup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden">
+        <div
+          className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedGroup(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -72,8 +78,8 @@ export default function GroupsPage() {
                   <span className="font-semibold text-primary-800">{selectedGroup.initial}</span>
                 </div>
                 <div>
-                  <div className="font-semibold text-lg">{selectedGroup.name}</div>
-                  <div className="text-sm text-gray-500">{selectedGroup.description}</div>
+                  <div className="font-semibold text-lg text-gray-900">{selectedGroup.name}</div>
+                  <div className="text-sm text-gray-900">{selectedGroup.description}</div>
                 </div>
               </div>
               <button
@@ -87,13 +93,13 @@ export default function GroupsPage() {
             {/* Content */}
             <div className="p-6">
               <div className="mb-6 bg-gray-50 rounded-lg p-6 flex items-center justify-center h-32">
-                <div className="text-gray-400">Group icons placeholder</div>
+                <div className="text-gray-600">Group icons placeholder</div>
               </div>
 
               <div>
-                <h3 className="font-semibold text-lg mb-2">{selectedGroup.name}</h3>
-                <p className="text-gray-600 mb-4">{selectedGroup.description}</p>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-semibold text-lg mb-2 text-gray-900">{selectedGroup.name}</h3>
+                <p className="text-gray-900 mb-4">{selectedGroup.description}</p>
+                <p className="text-sm text-gray-900">
                   Members: {selectedGroup.members.length > 0 ? selectedGroup.members.join(', ') : 'No members'}
                 </p>
               </div>

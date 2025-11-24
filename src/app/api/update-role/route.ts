@@ -21,14 +21,20 @@ export async function POST(req: Request) {
 
     // Update user metadata
     const client = await clerkClient()
-    await client.users.updateUser(userId, {
+    const updatedUser = await client.users.updateUser(userId, {
       publicMetadata: {
         role: role
       }
     })
 
     console.log('User metadata updated successfully')
-    return NextResponse.json({ success: true, role })
+    console.log('Verified role in Clerk:', (updatedUser.publicMetadata as any)?.role)
+
+    return NextResponse.json({
+      success: true,
+      role,
+      verified: (updatedUser.publicMetadata as any)?.role === role
+    })
   } catch (error) {
     console.error('Error updating role:', error)
     return NextResponse.json({
