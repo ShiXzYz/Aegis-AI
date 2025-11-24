@@ -33,6 +33,7 @@ export default function LogsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [stats, setStats] = useState<Stats>({ totalQueries: 0, todayQueries: 0, uniqueUsers: 0 })
   const [showFilters, setShowFilters] = useState(false)
+  const [selectedLog, setSelectedLog] = useState<ChatLog | null>(null)
   const [filters, setFilters] = useState({
     aiModel: '',
     sensitivity: '',
@@ -331,10 +332,13 @@ export default function LogsPage() {
                 </tr>
               ) : (
                 filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
+                  <tr key={log.id} className="hover:bg-gray-50 cursor-pointer">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
-                        onClick={() => toggleLog(log.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleLog(log.id)
+                        }}
                         className="text-gray-600 hover:text-black"
                       >
                         {log.checked ? (
@@ -344,7 +348,7 @@ export default function LogsPage() {
                         )}
                       </button>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => setSelectedLog(log)}>
                       <div className="text-sm font-medium text-gray-900">
                         {log.users?.name || 'Unknown'}
                       </div>
@@ -352,24 +356,24 @@ export default function LogsPage() {
                         {log.users?.email}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" onClick={() => setSelectedLog(log)}>
                       <div className="text-sm text-gray-900 max-w-md truncate">
                         {log.query}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => setSelectedLog(log)}>
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                         {log.ai_model}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => setSelectedLog(log)}>
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         getSensitivityColor(log.sensitivity_level)
                       }`}>
                         {log.sensitivity_level}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" onClick={() => setSelectedLog(log)}>
                       {new Date(log.created_at).toLocaleString()}
                     </td>
                   </tr>
@@ -379,6 +383,176 @@ export default function LogsPage() {
           </table>
         </div>
       </div>
+
+      {/* Log Details Modal */}
+      {selectedLog && (
+        <div
+          className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedLog(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+              <div>
+                <h3 className="font-semibold text-lg text-gray-900">Event Details</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {new Date(selectedLog.created_at).toLocaleString()}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* User Info */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#E8E4F3] flex items-center justify-center">
+                      <span className="font-semibold text-black">
+                        {(selectedLog.users?.name || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{selectedLog.users?.name || 'Unknown'}</p>
+                      <p className="text-sm text-gray-500">{selectedLog.users?.email}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Query */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">User Query</label>
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <p className="text-gray-900 whitespace-pre-wrap">{selectedLog.query}</p>
+                </div>
+              </div>
+
+              {/* Classification & AI Model */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Classification Level
+                  </label>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      getSensitivityColor(selectedLog.sensitivity_level)
+                    }`}>
+                      {selectedLog.sensitivity_level.charAt(0).toUpperCase() + selectedLog.sensitivity_level.slice(1)}
+                    </span>
+                    <p className="text-xs text-gray-600 mt-2">
+                      {selectedLog.sensitivity_level === 'public' &&
+                        'This query was classified as public information - general knowledge, non-sensitive content.'}
+                      {selectedLog.sensitivity_level === 'internal' &&
+                        'This query was classified as internal - company/organization internal information.'}
+                      {selectedLog.sensitivity_level === 'confidential' &&
+                        'This query was classified as confidential - sensitive business information, financial data.'}
+                      {selectedLog.sensitivity_level === 'restricted' &&
+                        'This query was classified as restricted - highly sensitive data, personal information, security-critical.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    AI Model Used
+                  </label>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <span className="px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                      {selectedLog.ai_model}
+                    </span>
+                    <p className="text-xs text-gray-600 mt-2">
+                      Based on the classification level, this query was routed to {selectedLog.ai_model}.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Classification Process */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  How Classification Works
+                </label>
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                        1
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Query Analysis</p>
+                        <p className="text-sm text-gray-600">
+                          The AI classification model analyzed the query content to determine its sensitivity level.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                        2
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Classification Decision</p>
+                        <p className="text-sm text-gray-600">
+                          Based on keywords, context, and content patterns, the query was classified as <span className="font-semibold">{selectedLog.sensitivity_level}</span>.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                        3
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Model Routing</p>
+                        <p className="text-sm text-gray-600">
+                          The system checked your organization's rules and routed the query to <span className="font-semibold">{selectedLog.ai_model}</span> for processing.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Response */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">AI Response</label>
+                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                  <p className="text-gray-900 whitespace-pre-wrap">{selectedLog.response}</p>
+                </div>
+              </div>
+
+              {/* Group Info (if available) */}
+              {selectedLog.groups && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Group</label>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-gray-900">{selectedLog.groups.name}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 flex justify-end sticky bottom-0 bg-white">
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="px-6 py-2 rounded-full bg-[#E8E4F3] text-black hover:bg-[#d8d0ed] transition font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }
