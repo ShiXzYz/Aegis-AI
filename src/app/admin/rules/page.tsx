@@ -1,58 +1,192 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { Sparkles, X, CheckSquare, Square } from 'lucide-react'
+import { Plus, Trash2, Edit2, Power, PowerOff, Sparkles } from 'lucide-react'
 
-interface AIModel {
+interface DataSource {
   id: string
   name: string
-  initial: string
-  selected: boolean
+  type: string
+  model_name: string | null
 }
 
 interface Rule {
   id: string
-  level: 'public' | 'internal' | 'confidential' | 'restricted'
-  description: string
-  models: string[]
+  name: string
+  description: string | null
+  classification_level: 'public' | 'internal' | 'confidential' | 'restricted'
+  data_source_id: string
+  organization_id: string
+  priority: number
+  is_active: boolean
+  created_at: string
+  data_source?: DataSource
 }
 
 export default function RulesPage() {
-  const [rules] = useState<Rule[]>([
-    {
-      id: '1',
-      level: 'public',
-      description: 'If the chat-bot query is Public',
-      models: ['ChatGPT', 'Google Gemini', 'Perplexity']
-    },
-    {
-      id: '2',
-      level: 'internal',
-      description: 'If the chat-bot query is Internal',
-      models: ['ChatGPT']
-    },
-    {
-      id: '3',
-      level: 'confidential',
-      description: 'If the chat-bot query is Confidential',
-      models: ['In-House AI Model']
-    },
-    {
-      id: '4',
-      level: 'restricted',
-      description: 'If the chat-bot query is Restricted/Sensitive',
-      models: []
-    },
-  ])
-
+  const [rules, setRules] = useState<Rule[]>([])
+  const [dataSources, setDataSources] = useState<DataSource[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [selectedRule, setSelectedRule] = useState<Rule | null>(null)
-  const [availableModels, setAvailableModels] = useState<AIModel[]>([
-    { id: '1', name: 'ChatGPT', initial: 'A', selected: false },
-    { id: '2', name: 'Google Gemini', initial: 'A', selected: false },
-    { id: '3', name: 'Perplexity', initial: 'A', selected: false },
-    { id: '4', name: 'In-House AI Model', initial: 'A', selected: false },
-  ])
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    classificationLevel: 'public' as 'public' | 'internal' | 'confidential' | 'restricted',
+    dataSourceId: '',
+    priority: 0
+  })
+
+  useEffect(() => {
+    fetchRules()
+    fetchDataSources()
+  }, [])
+
+  const fetchRules = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin/rules')
+      if (response.ok) {
+        const data = await response.json()
+        setRules(data.rules || [])
+      }
+    } catch (error) {
+      console.error('Error fetching rules:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchDataSources = async () => {
+    try {
+      const response = await fetch('/api/admin/data-sources')
+      if (response.ok) {
+        const data = await response.json()
+        setDataSources(data.dataSources || [])
+      }
+    } catch (error) {
+      console.error('Error fetching data sources:', error)
+    }
+  }
+
+  const handleCreate = async () => {
+    if (!formData.name || !formData.classificationLevel || !formData.dataSourceId) {
+      alert('Please fill in name, classification level, and data source')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(data.message || 'Rule created successfully')
+        setShowAddModal(false)
+        setFormData({ name: '', description: '', classificationLevel: 'public', dataSourceId: '', priority: 0 })
+        fetchRules()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to create rule')
+      }
+    } catch (error) {
+      console.error('Error creating rule:', error)
+      alert('Failed to create rule')
+    }
+  }
+
+  const handleUpdate = async () => {
+    if (!selectedRule) return
+
+    try {
+      const response = await fetch('/api/admin/rules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ruleId: selectedRule.id,
+          ...formData
+        })
+      })
+
+      if (response.ok) {
+        alert('Rule updated successfully')
+        setShowEditModal(false)
+        setSelectedRule(null)
+        setFormData({ name: '', description: '', classificationLevel: 'public', dataSourceId: '', priority: 0 })
+        fetchRules()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to update rule')
+      }
+    } catch (error) {
+      console.error('Error updating rule:', error)
+      alert('Failed to update rule')
+    }
+  }
+
+  const handleToggleActive = async (rule: Rule) => {
+    try {
+      const response = await fetch('/api/admin/rules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ruleId: rule.id,
+          isActive: !rule.is_active
+        })
+      })
+
+      if (response.ok) {
+        alert(`Rule ${!rule.is_active ? 'activated' : 'deactivated'} successfully`)
+        fetchRules()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to toggle rule')
+      }
+    } catch (error) {
+      console.error('Error toggling rule:', error)
+      alert('Failed to toggle rule')
+    }
+  }
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/rules?id=${id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        alert('Rule deleted successfully')
+        fetchRules()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to delete rule')
+      }
+    } catch (error) {
+      console.error('Error deleting rule:', error)
+      alert('Failed to delete rule')
+    }
+  }
+
+  const openEditModal = (rule: Rule) => {
+    setSelectedRule(rule)
+    setFormData({
+      name: rule.name,
+      description: rule.description || '',
+      classificationLevel: rule.classification_level,
+      dataSourceId: rule.data_source_id,
+      priority: rule.priority
+    })
+    setShowEditModal(true)
+  }
 
   const getLevelColor = (level: string) => {
     switch (level) {
@@ -64,102 +198,251 @@ export default function RulesPage() {
     }
   }
 
-  const openRuleModal = (rule: Rule) => {
-    setSelectedRule(rule)
-    // Pre-select models that are already assigned to this rule
-    setAvailableModels(availableModels.map(model => ({
-      ...model,
-      selected: rule.models.includes(model.name)
-    })))
+  const getLevelLabel = (level: string) => {
+    return level.charAt(0).toUpperCase() + level.slice(1)
   }
 
-  const toggleModel = (id: string) => {
-    setAvailableModels(availableModels.map(model =>
-      model.id === id ? { ...model, selected: !model.selected } : model
-    ))
-  }
-
-  const applyRule = () => {
-    // Logic to save the selected models to the rule
-    console.log('Applying rule with models:', availableModels.filter(m => m.selected))
-    setSelectedRule(null)
+  const getInitial = (name: string) => {
+    return name.charAt(0).toUpperCase()
   }
 
   return (
     <AdminLayout title="Rules">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        {/* Rules Icon */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-            <Sparkles size={24} className="text-primary-600" />
-          </div>
-        </div>
+      {/* Header with Add Button */}
+      <div className="mb-4 flex justify-between items-center">
+        <p className="text-gray-600">Configure AI model routing based on query classification</p>
+        <button
+          onClick={() => {
+            setFormData({ name: '', description: '', classificationLevel: 'public', dataSourceId: '', priority: 0 })
+            setShowAddModal(true)
+          }}
+          className="px-4 py-2 bg-[#E8E4F3] text-black rounded-full hover:bg-[#d8d0ed] transition font-medium flex items-center gap-2"
+        >
+          <Plus size={20} />
+          Add Rule
+        </button>
+      </div>
 
-        {/* Rules List */}
-        <div className="space-y-3">
-          {rules.map((rule) => (
-            <button
-              key={rule.id}
-              onClick={() => openRuleModal(rule)}
-              className="w-full text-left p-4 bg-[#F5F3FF] hover:bg-[#EDE9FE] rounded-lg transition"
-            >
-              <p className="text-sm text-gray-700">{rule.description}</p>
-              {rule.models.length > 0 && (
-                <p className="text-xs text-gray-900 mt-1">
-                  Models: {rule.models.join(', ')}
-                </p>
-              )}
-            </button>
-          ))}
+      {/* Rules List */}
+      <div className="bg-white rounded-lg shadow-sm">
+        <div className="divide-y divide-gray-200">
+          {loading ? (
+            <div className="p-8 text-center text-gray-500">Loading rules...</div>
+          ) : rules.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              No rules configured. Add your first rule to enable classification-based routing.
+            </div>
+          ) : (
+            rules.map((rule) => (
+              <div key={rule.id} className="p-4 hover:bg-gray-50 transition">
+                <div className="flex items-center gap-4">
+                  {/* Rule Icon */}
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    rule.is_active ? 'bg-[#E8E4F3]' : 'bg-gray-200'
+                  }`}>
+                    <span className={`font-semibold ${
+                      rule.is_active ? 'text-black' : 'text-gray-500'
+                    }`}>
+                      {getInitial(rule.name)}
+                    </span>
+                  </div>
+
+                  {/* Rule Info */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{rule.name}</span>
+                      <span className={`text-xs px-2 py-1 rounded ${getLevelColor(rule.classification_level)}`}>
+                        {getLevelLabel(rule.classification_level)}
+                      </span>
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                        Priority: {rule.priority}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {rule.description || 'No description'}
+                    </div>
+                    {rule.data_source && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Routes to: {rule.data_source.name}
+                        {rule.data_source.model_name && ` (${rule.data_source.model_name})`}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Status Badge */}
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    rule.is_active
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {rule.is_active ? 'Active' : 'Inactive'}
+                  </span>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleToggleActive(rule)}
+                      className={`p-2 rounded-lg transition ${
+                        rule.is_active
+                          ? 'text-orange-600 hover:bg-orange-50'
+                          : 'text-green-600 hover:bg-green-50'
+                      }`}
+                      title={rule.is_active ? 'Deactivate' : 'Activate'}
+                    >
+                      {rule.is_active ? <PowerOff size={18} /> : <Power size={18} />}
+                    </button>
+                    <button
+                      onClick={() => openEditModal(rule)}
+                      className="p-2 text-gray-600 hover:text-black hover:bg-gray-100 rounded-lg transition"
+                      title="Edit rule"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(rule.id, rule.name)}
+                      className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
+                      title="Delete rule"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Rule Configuration Modal */}
-      {selectedRule && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#F5F3FF] rounded-2xl max-w-sm w-full overflow-hidden">
+      {/* Add/Edit Rule Modal */}
+      {(showAddModal || showEditModal) && (
+        <div
+          className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setShowAddModal(false)
+            setShowEditModal(false)
+            setSelectedRule(null)
+            setFormData({ name: '', description: '', classificationLevel: 'public', dataSourceId: '', priority: 0 })
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="p-6 border-b border-gray-200">
-              <h3 className="font-semibold text-lg">
-                {selectedRule.level.charAt(0).toUpperCase() + selectedRule.level.slice(1)} Rule
-              </h3>
-              <p className="text-sm text-gray-900 mt-1">
-                If the user query to the chat-bot is deemed {selectedRule.level}, please route the query to:
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-[#E8E4F3] rounded-lg flex items-center justify-center">
+                  <Sparkles size={20} className="text-black" />
+                </div>
+                <h3 className="font-semibold text-lg text-gray-900">
+                  {showAddModal ? 'Add Rule' : 'Edit Rule'}
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600">
+                Configure which AI model handles queries of a specific classification level
               </p>
             </div>
 
-            {/* AI Models List */}
-            <div className="p-6 space-y-3">
-              {availableModels.map((model) => (
-                <button
-                  key={model.id}
-                  onClick={() => toggleModel(model.id)}
-                  className="w-full flex items-center gap-3 p-3 bg-white hover:bg-gray-50 rounded-lg transition"
+            {/* Form */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rule Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Public Queries to ChatGPT"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] bg-gray-50 text-gray-900 placeholder-gray-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Classification Level <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.classificationLevel}
+                  onChange={(e) => setFormData({ ...formData, classificationLevel: e.target.value as any })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] bg-gray-50 text-gray-900"
                 >
-                  <div className="w-10 h-10 rounded-full bg-primary-200 flex items-center justify-center flex-shrink-0">
-                    <span className="font-semibold text-primary-800">{model.initial}</span>
-                  </div>
-                  <span className="flex-1 text-left font-medium">{model.name}</span>
-                  <div className="text-primary-600">
-                    {model.selected ? <CheckSquare size={20} /> : <Square size={20} />}
-                  </div>
-                </button>
-              ))}
+                  <option value="public">Public</option>
+                  <option value="internal">Internal</option>
+                  <option value="confidential">Confidential</option>
+                  <option value="restricted">Restricted</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Queries classified at this level will be routed to the selected AI model
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Target AI Model <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.dataSourceId}
+                  onChange={(e) => setFormData({ ...formData, dataSourceId: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] bg-gray-50 text-gray-900"
+                >
+                  <option value="">Select AI model</option>
+                  {dataSources.map((source) => (
+                    <option key={source.id} value={source.id}>
+                      {source.name} {source.model_name ? `(${source.model_name})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Priority
+                </label>
+                <input
+                  type="number"
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
+                  placeholder="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] bg-gray-50 text-gray-900 placeholder-gray-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Higher priority rules are checked first (default: 0)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe when this rule should be used"
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] resize-none bg-gray-50 text-gray-900 placeholder-gray-500"
+                />
+              </div>
             </div>
 
             {/* Footer */}
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
               <button
-                onClick={() => setSelectedRule(null)}
-                className="px-6 py-2 rounded-full border border-gray-300 hover:bg-gray-50 transition bg-white"
+                onClick={() => {
+                  setShowAddModal(false)
+                  setShowEditModal(false)
+                  setSelectedRule(null)
+                  setFormData({ name: '', description: '', classificationLevel: 'public', dataSourceId: '', priority: 0 })
+                }}
+                className="px-6 py-2 rounded-full border border-gray-300 hover:bg-gray-50 transition"
               >
                 Cancel
               </button>
               <button
-                onClick={applyRule}
-                className="px-6 py-2 rounded-full bg-primary-600 text-white hover:bg-primary-700 transition"
+                onClick={showAddModal ? handleCreate : handleUpdate}
+                className="px-6 py-2 rounded-full bg-[#E8E4F3] text-black hover:bg-[#d8d0ed] transition font-medium"
               >
-                Apply
+                {showAddModal ? 'Add Rule' : 'Save Changes'}
               </button>
             </div>
           </div>
