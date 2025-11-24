@@ -11,6 +11,12 @@ export default function OrganizationJoinedPage() {
   const organizationName = searchParams.get('name') || 'your organization'
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
+  const handleGoToChat = () => {
+    // Force a reload when going to chat to refresh organization data
+    router.push('/chat')
+    router.refresh()
+  }
+
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       {/* Sidebar */}
@@ -64,7 +70,7 @@ export default function OrganizationJoinedPage() {
           </p>
 
           <button
-            onClick={() => router.push('/chat')}
+            onClick={handleGoToChat}
             className="w-full px-6 py-4 bg-[#E8E4F3] text-black rounded-full hover:bg-[#d8d0ed] transition font-medium flex items-center justify-center gap-2"
           >
             Go to Chat

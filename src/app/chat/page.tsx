@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { UserButton, useUser } from '@clerk/nextjs'
 import { Menu, Plus, Settings, Building2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -12,10 +12,29 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
+  const [organization, setOrganization] = useState<{ name: string } | null>(null)
   const { user } = useUser()
   const router = useRouter()
 
   const isAdmin = (user?.publicMetadata as { role?: string })?.role === 'admin'
+
+  useEffect(() => {
+    fetchUserOrganization()
+  }, [user])
+
+  const fetchUserOrganization = async () => {
+    if (!user) return
+
+    try {
+      const response = await fetch('/api/user/organization')
+      if (response.ok) {
+        const data = await response.json()
+        setOrganization(data.organization)
+      }
+    } catch (error) {
+      console.error('Error fetching organization:', error)
+    }
+  }
 
   const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
@@ -100,26 +119,49 @@ export default function ChatPage() {
           </button>
         )}
 
-        {/* Join Organization Button - only for non-admin users */}
+        {/* Organization Display/Join Button - only for non-admin users */}
         {!isAdmin && (
-          sidebarExpanded ? (
-            <button
-              onClick={() => router.push('/join-organization')}
-              className="w-full px-4 mb-6"
-            >
-              <div className="bg-white/60 hover:bg-white/80 rounded-full py-3 px-4 transition flex items-center gap-2">
-                <Building2 size={24} className="text-black" />
-                <span className="text-black font-medium text-sm">Join Organization</span>
+          organization ? (
+            // Show current organization
+            sidebarExpanded ? (
+              <div className="w-full px-4 mb-6">
+                <div className="bg-white/60 rounded-full py-3 px-4 flex items-center gap-2">
+                  <Building2 size={20} className="text-black" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-black/70 font-medium">Organization</p>
+                    <p className="text-sm font-semibold text-black truncate">{organization.name}</p>
+                  </div>
+                </div>
               </div>
-            </button>
+            ) : (
+              <div
+                className="w-12 h-12 bg-white/60 rounded-full transition flex items-center justify-center mx-auto mb-6"
+                title={organization.name}
+              >
+                <Building2 size={20} className="text-black" />
+              </div>
+            )
           ) : (
-            <button
-              onClick={() => router.push('/join-organization')}
-              className="w-12 h-12 bg-white/50 hover:bg-white/70 rounded-full transition flex items-center justify-center mb-6"
-              title="Join Organization"
-            >
-              <Building2 size={24} className="text-black" />
-            </button>
+            // Show join button if no organization
+            sidebarExpanded ? (
+              <button
+                onClick={() => router.push('/join-organization')}
+                className="w-full px-4 mb-6"
+              >
+                <div className="bg-white/60 hover:bg-white/80 rounded-full py-3 px-4 transition flex items-center gap-2">
+                  <Building2 size={24} className="text-black" />
+                  <span className="text-black font-medium text-sm">Join Organization</span>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push('/join-organization')}
+                className="w-12 h-12 bg-white/50 hover:bg-white/70 rounded-full transition flex items-center justify-center mb-6"
+                title="Join Organization"
+              >
+                <Building2 size={24} className="text-black" />
+              </button>
+            )
           )
         )}
 
