@@ -23,14 +23,22 @@ interface User {
   checked?: boolean
 }
 
+interface GroupOption {
+  id: string
+  name: string
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [groups, setGroups] = useState<GroupOption[]>([])
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('')
 
   useEffect(() => {
     fetchUsers()
+    fetchGroups()
   }, [])
 
   const fetchUsers = async () => {
@@ -53,6 +61,40 @@ export default function UsersPage() {
       setError(error instanceof Error ? error.message : 'Failed to fetch users')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchGroups = async () => {
+    try {
+      const response = await fetch('/api/admin/groups')
+      if (response.ok) {
+        const data = await response.json()
+        setGroups(data.groups || [])
+      }
+    } catch (error) {
+      console.error('Error fetching groups:', error)
+    }
+  }
+
+  const updateUserGroup = async (userId: string, groupId: string | null) => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, groupId })
+      })
+
+      if (response.ok) {
+        alert('User group updated successfully')
+        fetchUsers()
+        setSelectedUser(null)
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to update user group')
+      }
+    } catch (error) {
+      console.error('Error updating user group:', error)
+      alert('Failed to update user group')
     }
   }
 
@@ -105,7 +147,10 @@ export default function UsersPage() {
 
                   {/* User Info */}
                   <button
-                    onClick={() => setSelectedUser(user)}
+                    onClick={() => {
+                      setSelectedUser(user)
+                      setSelectedGroupId(user.group_id || '')
+                    }}
                     className="flex-1 text-left"
                   >
                     <div className="font-medium text-black">{user.name}</div>
@@ -194,15 +239,27 @@ export default function UsersPage() {
                 )}
               </div>
 
-              {/* Groups */}
-              {selectedUser.groups && (
-                <div>
-                  <label className="block text-sm font-medium text-black mb-1">Group</label>
-                  <span className="px-3 py-1 bg-gray-100 rounded-full text-sm text-black inline-block">
-                    {selectedUser.groups.name}
-                  </span>
-                </div>
-              )}
+              {/* Group Assignment */}
+              <div>
+                <label className="block text-sm font-medium text-black mb-2">Assign Group</label>
+                <select
+                  value={selectedGroupId}
+                  onChange={(e) => setSelectedGroupId(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] text-black"
+                >
+                  <option value="">No Group</option>
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+                {selectedUser.groups && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    Currently in: {selectedUser.groups.name}
+                  </p>
+                )}
+              </div>
 
               {/* Created At */}
               <div>
@@ -220,6 +277,12 @@ export default function UsersPage() {
                 className="px-6 py-2 rounded-full border-2 border-gray-300 hover:bg-gray-50 transition font-medium text-black"
               >
                 Close
+              </button>
+              <button
+                onClick={() => updateUserGroup(selectedUser.id, selectedGroupId || null)}
+                className="px-6 py-2 rounded-full bg-[#E8E4F3] text-black hover:bg-[#d8d0ed] transition font-medium"
+              >
+                Save Changes
               </button>
             </div>
           </div>
