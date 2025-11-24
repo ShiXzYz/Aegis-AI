@@ -150,7 +150,7 @@ export default function UsersPage() {
                   <button
                     onClick={() => {
                       setSelectedUser(user)
-                      setSelectedGroupId(user.group_id || '')
+                      setSelectedGroupId(user.groups?.id || '')
                     }}
                     className="flex-1 text-left"
                   >

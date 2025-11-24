@@ -72,7 +72,7 @@ export async function GET(request: Request) {
     const enrichedUsers = users?.map(user => ({
       ...user,
       organization: user.organization_id ? orgMap.get(user.organization_id) : null,
-      groups: user.group_id ? [groupMap.get(user.group_id)].filter(Boolean) : []
+      groups: user.group_id ? groupMap.get(user.group_id) : null
     }))
 
     return NextResponse.json({ users: enrichedUsers })
