@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { Building2, ArrowRight, Menu, X } from 'lucide-react'
 
-export default function OrganizationJoinedPage() {
+function OrganizationJoinedContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const organizationName = searchParams.get('name') || 'your organization'
@@ -73,5 +73,13 @@ export default function OrganizationJoinedPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OrganizationJoinedPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <OrganizationJoinedContent />
+    </Suspense>
   )
 }
