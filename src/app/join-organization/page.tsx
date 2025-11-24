@@ -38,8 +38,8 @@ export default function JoinOrganizationPage() {
         return
       }
 
-      // Success! Redirect to select-role
-      router.push('/select-role')
+      // Success! Redirect to success page with organization name
+      router.push(`/organization-joined?name=${encodeURIComponent(data.organization.name)}`)
     } catch (error) {
       console.error('Error joining organization:', error)
       setError('Something went wrong. Please try again.')

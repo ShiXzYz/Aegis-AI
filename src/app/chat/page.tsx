@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { UserButton, useUser } from '@clerk/nextjs'
-import { Menu, Plus, Settings } from 'lucide-react'
+import { Menu, Plus, Settings, Building2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import MessageList from '@/components/chat/MessageList'
 import MessageInput from '@/components/chat/MessageInput'
 import { Message } from '@/types'
@@ -12,6 +13,9 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const { user } = useUser()
+  const router = useRouter()
+
+  const isAdmin = (user?.publicMetadata as { role?: string })?.role === 'admin'
 
   const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
@@ -68,7 +72,7 @@ export default function ChatPage() {
             className="p-3 hover:bg-white/30 rounded-lg transition"
             title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
           >
-            <Menu size={24} className="text-gray-700" />
+            <Menu size={24} className="text-black" />
           </button>
         </div>
 
@@ -79,21 +83,44 @@ export default function ChatPage() {
         {sidebarExpanded ? (
           <button
             onClick={() => setMessages([])}
-            className="w-full px-4 mb-6"
+            className="w-full px-4 mb-3"
           >
             <div className="bg-white/60 hover:bg-white/80 rounded-full py-3 px-4 transition flex items-center gap-2">
-              <Plus size={24} className="text-gray-700" />
-              <span className="text-gray-700 font-medium text-sm">New chat</span>
+              <Plus size={24} className="text-black" />
+              <span className="text-black font-medium text-sm">New chat</span>
             </div>
           </button>
         ) : (
           <button
             onClick={() => setMessages([])}
-            className="w-12 h-12 bg-white/50 hover:bg-white/70 rounded-full transition flex items-center justify-center mb-6"
+            className="w-12 h-12 bg-white/50 hover:bg-white/70 rounded-full transition flex items-center justify-center mb-3"
             title="New chat"
           >
-            <Plus size={24} className="text-gray-700" />
+            <Plus size={24} className="text-black" />
           </button>
+        )}
+
+        {/* Join Organization Button - only for non-admin users */}
+        {!isAdmin && (
+          sidebarExpanded ? (
+            <button
+              onClick={() => router.push('/join-organization')}
+              className="w-full px-4 mb-6"
+            >
+              <div className="bg-white/60 hover:bg-white/80 rounded-full py-3 px-4 transition flex items-center gap-2">
+                <Building2 size={24} className="text-black" />
+                <span className="text-black font-medium text-sm">Join Organization</span>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push('/join-organization')}
+              className="w-12 h-12 bg-white/50 hover:bg-white/70 rounded-full transition flex items-center justify-center mb-6"
+              title="Join Organization"
+            >
+              <Building2 size={24} className="text-black" />
+            </button>
+          )
         )}
 
         {/* Chat History - Only show when expanded */}
@@ -101,7 +128,7 @@ export default function ChatPage() {
           <div className="flex-1 w-full px-4 overflow-y-auto">
             <div className="space-y-2">
               {/* Chat history items will go here */}
-              <div className="text-sm text-gray-600 text-center py-4">
+              <div className="text-sm text-black text-center py-4">
                 No previous chats
               </div>
             </div>
@@ -112,14 +139,14 @@ export default function ChatPage() {
         {!sidebarExpanded && <div className="flex-1" />}
 
         {/* Settings Button */}
-        <button 
+        <button
           className={`${
             sidebarExpanded ? 'w-full px-4 justify-start' : ''
           } p-3 hover:bg-white/30 rounded-lg transition flex items-center gap-2`}
           title="Settings"
         >
-          <Settings size={24} className="text-gray-700" />
-          {sidebarExpanded && <span className="text-gray-700">Settings</span>}
+          <Settings size={24} className="text-black" />
+          {sidebarExpanded && <span className="text-black">Settings</span>}
         </button>
       </div>
 

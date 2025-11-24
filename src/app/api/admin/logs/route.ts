@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { isAdmin } from '@/lib/auth'
 
 export async function GET(request: Request) {
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     const offset = parseInt(searchParams.get('offset') || '0')
 
     // Build query
-    let query = supabase
+    let query = supabaseAdmin
       .from('chat_logs')
       .select(`
         *,
@@ -53,13 +53,13 @@ export async function GET(request: Request) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    const { count: todayCount } = await supabase
+    const { count: todayCount } = await supabaseAdmin
       .from('chat_logs')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', today.toISOString())
 
     // Get unique users count
-    const { data: uniqueUsers } = await supabase
+    const { data: uniqueUsers } = await supabaseAdmin
       .from('chat_logs')
       .select('user_id')
       .gte('created_at', today.toISOString())

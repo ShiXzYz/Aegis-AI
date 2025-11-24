@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { isAdmin } from '@/lib/auth'
 
 export async function GET(request: Request) {
@@ -17,13 +17,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
-    // Fetch all users with their groups
-    const { data: users, error } = await supabase
+    // Fetch all users with their organization and groups
+    const { data: users, error } = await supabaseAdmin
       .from('users')
       .select(`
         *,
+        organization:organization_id (
+          name,
+          join_code
+        ),
         groups:group_id (
-          id,
           name
         )
       `)
@@ -62,7 +65,7 @@ export async function PATCH(request: Request) {
     if (groupId !== undefined) updates.group_id = groupId
     if (role !== undefined) updates.role = role
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .update(updates)
       .eq('id', userId)

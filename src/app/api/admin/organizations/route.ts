@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { currentUser } from '@clerk/nextjs/server'
 
 // Generate 8-character alphanumeric code (like Engauge)
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch all organizations with user count
-    const { data: organizations, error } = await supabase
+    const { data: organizations, error } = await supabaseAdmin
       .from('organizations')
       .select(`
         *,
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
 
     // Ensure code is unique (try up to 10 times)
     while (!isUnique && attempts < 10) {
-      const { data: existing } = await supabase
+      const { data: existing } = await supabaseAdmin
         .from('organizations')
         .select('id')
         .eq('join_code', joinCode)
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     }
 
     // Create organization
-    const { data: organization, error } = await supabase
+    const { data: organization, error } = await supabaseAdmin
       .from('organizations')
       .insert({
         name,
@@ -154,7 +154,7 @@ export async function PUT(request: Request) {
     if (name !== undefined) updates.name = name
     if (description !== undefined) updates.description = description
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('organizations')
       .update(updates)
       .eq('id', organizationId)
@@ -196,7 +196,7 @@ export async function DELETE(request: Request) {
     }
 
     // Delete organization
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('organizations')
       .delete()
       .eq('id', organizationId)

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     // Find organization by join code
-    const { data: organization, error: orgError } = await supabase
+    const { data: organization, error: orgError } = await supabaseAdmin
       .from('organizations')
       .select('*')
       .eq('join_code', joinCode.toUpperCase())
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     // Get or create user in database
-    let { data: dbUser } = await supabase
+    let { data: dbUser } = await supabaseAdmin
       .from('users')
       .select('id, organization_id')
       .eq('clerk_id', userId)
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
     if (!dbUser) {
       // Create user with this organization
-      const { data: newUser, error: createError } = await supabase
+      const { data: newUser, error: createError } = await supabaseAdmin
         .from('users')
         .insert({
           clerk_id: userId,
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     }
 
     // Update existing user's organization
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('users')
       .update({ organization_id: organization.id })
       .eq('id', dbUser.id)

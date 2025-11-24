@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)
 
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     }
 
     // --- Get user from DB ---
-    let { data: dbUser } = await supabase
+    let { data: dbUser } = await supabaseAdmin
       .from('users')
       .select('id, organization_id, group_id')
       .eq('clerk_id', userId)
@@ -34,13 +34,13 @@ export async function POST(request: Request) {
 
     // --- If user doesn't exist, create them ---
     if (!dbUser) {
-      const { data: defaultOrg } = await supabase
+      const { data: defaultOrg } = await supabaseAdmin
         .from('organizations')
         .select('id')
         .eq('name', 'Default Organization')
         .single()
 
-      const { data: newUser } = await supabase
+      const { data: newUser } = await supabaseAdmin
         .from('users')
         .insert({
           clerk_id: userId,
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
 
     // --- Log conversation to Supabase ---
     if (userDbId) {
-      await supabase.from('chat_logs').insert({
+      await supabaseAdmin.from('chat_logs').insert({
         user_id: userDbId,
         organization_id: organizationId,
         group_id: groupId,
