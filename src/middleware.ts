@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
   '/select-role',
   '/join-organization',
   '/organization-joined',
+  '/my-organization',
   '/api(.*)'
 ])
 

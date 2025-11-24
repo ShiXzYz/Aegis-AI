@@ -13,7 +13,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const pathname = usePathname()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarExpanded, setSidebarExpanded] = useState(false)
 
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -27,50 +27,58 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
   return (
     <div className="flex h-screen bg-[#F5F3FF] overflow-hidden">
-      {/* Sidebar */}
+      {/* Sidebar - Same style as user chat */}
       <div
         className={`${
-          sidebarOpen ? 'w-20' : 'w-0'
-        } lg:w-20 bg-[#E8E4F3] transition-all duration-300 ease-in-out flex flex-col items-center py-6 flex-shrink-0`}
+          sidebarExpanded ? 'w-64' : 'w-20'
+        } bg-[#E8E4F3] transition-all duration-300 ease-in-out flex flex-col items-center py-6 flex-shrink-0 relative`}
       >
-        {/* Menu Toggle */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden p-3 hover:bg-white/30 rounded-lg transition mb-6"
-        >
-          {sidebarOpen ? <X size={24} className="text-gray-900" /> : <Menu size={24} className="text-gray-900" />}
-        </button>
+        {/* Menu Toggle Button */}
+        <div className="absolute top-6 left-[16px]">
+          <button
+            onClick={() => setSidebarExpanded(!sidebarExpanded)}
+            className="p-3 hover:bg-white/30 rounded-lg transition"
+            title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            <Menu size={24} className="text-black" />
+          </button>
+        </div>
 
-        {/* Navigation Icons */}
-        <nav className="flex-1 flex flex-col gap-4 w-full items-center">
+        {/* Spacer for button */}
+        <div className="h-16 mb-6" />
+
+        {/* Admin Navigation Items */}
+        <div className="flex-1 w-full overflow-y-auto space-y-2">
           {navigation.map((item) => {
-            const isActive = pathname === item.href
             const Icon = item.icon
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`w-12 h-12 flex items-center justify-center rounded-lg transition ${
+            const isActive = pathname === item.href
+            return sidebarExpanded ? (
+              <Link key={item.name} href={item.href} className="block px-4">
+                <div className={`w-full py-3 px-4 rounded-full transition flex items-center gap-3 ${
                   isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-900 hover:bg-white/30'
-                }`}
-                title={item.name}
-              >
-                <Icon size={24} />
+                    ? 'bg-white/70 text-black font-semibold'
+                    : 'bg-white/50 hover:bg-white/70 text-black'
+                }`}>
+                  <Icon size={20} />
+                  <span className="font-medium text-sm">{item.name}</span>
+                </div>
+              </Link>
+            ) : (
+              <Link key={item.name} href={item.href}>
+                <div
+                  className={`w-12 h-12 rounded-full transition flex items-center justify-center mx-auto mb-2 ${
+                    isActive
+                      ? 'bg-white/70'
+                      : 'bg-white/50 hover:bg-white/70'
+                  }`}
+                  title={item.name}
+                >
+                  <Icon size={20} className="text-black" />
+                </div>
               </Link>
             )
           })}
-        </nav>
-
-        {/* Settings at bottom */}
-        <Link
-          href="/admin/settings"
-          className="w-12 h-12 flex items-center justify-center rounded-lg text-gray-900 hover:bg-white/30 transition"
-          title="Settings"
-        >
-          <Settings size={24} />
-        </Link>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -78,15 +86,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
           <div className="px-6 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <Menu size={24} className="text-gray-900" />
-              </button>
-              <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            </div>
+            <h1 className="text-2xl font-bold text-black">{title}</h1>
             <UserButton afterSignOutUrl="/" />
           </div>
         </div>

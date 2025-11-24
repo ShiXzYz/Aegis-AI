@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { UserButton } from '@clerk/nextjs'
-import Link from 'next/link'
-import { ArrowLeft, Search, Filter } from 'lucide-react'
+import AdminLayout from '@/components/admin/AdminLayout'
+import { Search, Filter } from 'lucide-react'
 
 interface ChatLog {
   id: string
@@ -64,26 +63,8 @@ export default function LogsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                  <ArrowLeft size={20} className="text-gray-900" />
-                </button>
-              </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Event Logs</h1>
-            </div>
-            <UserButton afterSignOutUrl="/" />
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+    <AdminLayout title="Events">
+      <div className="space-y-6">
         {/* Search Bar */}
         <div className="mb-6">
           <div className="relative">
@@ -197,6 +178,6 @@ export default function LogsPage() {
           </table>
         </div>
       </div>
-    </div>
+    </AdminLayout>
   )
 }

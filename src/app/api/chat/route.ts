@@ -34,6 +34,9 @@ export async function POST(request: Request) {
 
     // --- If user doesn't exist, create them ---
     if (!dbUser) {
+      // Get role from Clerk's publicMetadata
+      const userRole = (user?.publicMetadata as { role?: string })?.role || 'user'
+
       const { data: defaultOrg } = await supabaseAdmin
         .from('organizations')
         .select('id')
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
           email: user?.emailAddresses?.[0]?.emailAddress || '',
           name: user?.fullName || user?.firstName || 'User',
           organization_id: defaultOrg?.id,
-          role: 'user',
+          role: userRole,
         })
         .select()
         .single()

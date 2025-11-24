@@ -10,9 +10,50 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
+    // Get admin's organization_id
+    let { data: adminUser, error: adminUserError } = await supabaseAdmin
+      .from('users')
+      .select('organization_id')
+      .eq('clerk_id', userId)
+      .single()
+
+    console.log('Admin user lookup:', { adminUser, adminUserError, userId })
+
+    // If admin doesn't exist in database, create them
+    if (!adminUser) {
+      const clerkUser = await (await import('@clerk/nextjs/server')).currentUser()
+      if (clerkUser) {
+        const userRole = (clerkUser.publicMetadata as { role?: string })?.role || 'user'
+        const { data: newUser } = await supabaseAdmin
+          .from('users')
+          .insert({
+            clerk_id: userId,
+            email: clerkUser.emailAddresses?.[0]?.emailAddress || '',
+            name: clerkUser.fullName || clerkUser.firstName || 'User',
+            organization_id: null,
+            role: userRole,
+          })
+          .select('organization_id')
+          .single()
+
+        adminUser = newUser
+        console.log('Created admin user in database:', newUser)
+      }
+    }
+
+    // If admin has no organization, return empty list
+    if (!adminUser || !adminUser.organization_id) {
+      console.log('Admin has no organization, returning empty list')
+      return NextResponse.json({ users: [] })
+    }
+
+    console.log('Fetching users for organization:', adminUser.organization_id)
+
+    // Fetch users from the same organization as the admin
     const { data: users, error: usersError } = await supabaseAdmin
       .from('users')
       .select('*')
+      .eq('organization_id', adminUser.organization_id)
       .order('created_at', { ascending: false })
 
     if (usersError) throw usersError

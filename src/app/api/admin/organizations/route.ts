@@ -118,6 +118,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to create organization' }, { status: 500 })
     }
 
+    // Automatically add the admin to the organization they just created
+    const { data: adminUser } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('clerk_id', userId)
+      .single()
+
+    if (adminUser) {
+      // Update admin's organization_id
+      await supabaseAdmin
+        .from('users')
+        .update({ organization_id: organization.id })
+        .eq('id', adminUser.id)
+    }
+
     return NextResponse.json({
       success: true,
       organization,
@@ -193,6 +208,17 @@ export async function DELETE(request: Request) {
 
     if (!organizationId) {
       return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 })
+    }
+
+    // Remove all users from this organization (set organization_id to null)
+    const { error: updateError } = await supabaseAdmin
+      .from('users')
+      .update({ organization_id: null })
+      .eq('organization_id', organizationId)
+
+    if (updateError) {
+      console.error('Error removing users from organization:', updateError)
+      return NextResponse.json({ error: 'Failed to remove users from organization' }, { status: 500 })
     }
 
     // Delete organization
