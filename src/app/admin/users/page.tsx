@@ -11,6 +11,7 @@ interface User {
   role: string
   clerk_id: string
   organization_id: string | null
+  group_id?: string | null
   created_at: string
   organization?: {
     name: string
