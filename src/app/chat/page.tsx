@@ -13,6 +13,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [organization, setOrganization] = useState<{ name: string } | null>(null)
+  const [errorNotification, setErrorNotification] = useState<string | null>(null)
   const { user } = useUser()
   const router = useRouter()
 
@@ -45,6 +46,7 @@ export default function ChatPage() {
     }
     setMessages((prev) => [...prev, userMessage])
     setIsLoading(true)
+    setErrorNotification(null) // Clear any previous error
 
     try {
       const response = await fetch('/api/chat', {
@@ -55,6 +57,14 @@ export default function ChatPage() {
 
       const data = await response.json()
 
+      // Check for error responses
+      if (data.error) {
+        setErrorNotification(data.message || 'An error occurred')
+        // Remove the user message since we couldn't process it
+        setMessages((prev) => prev.slice(0, -1))
+        return
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -64,13 +74,9 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, aiMessage])
     } catch (error) {
       console.error('Error sending message:', error)
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, there was an error processing your request.',
-        timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, errorMessage])
+      setErrorNotification('Sorry, there was an error processing your request.')
+      // Remove the user message since we couldn't process it
+      setMessages((prev) => prev.slice(0, -1))
     } finally {
       setIsLoading(false)
     }
@@ -202,6 +208,35 @@ export default function ChatPage() {
         <div className="flex justify-end items-center px-6 py-4 border-b border-gray-100">
           <UserButton afterSignOutUrl="/" />
         </div>
+
+        {/* Error Notification */}
+        {errorNotification && (
+          <div className="flex justify-center py-4 px-6">
+            <div className="bg-red-50 border border-red-200 rounded-lg px-6 py-3 max-w-2xl">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center mt-0.5">
+                  <span className="text-white text-xs font-bold">!</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-red-800 font-medium">{errorNotification}</p>
+                  {errorNotification.includes('administrator') && (
+                    <p className="text-red-600 text-sm mt-1">
+                      Contact your organization admin to configure an AI model.
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setErrorNotification(null)}
+                  className="flex-shrink-0 text-red-400 hover:text-red-600 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto flex flex-col">

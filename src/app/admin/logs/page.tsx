@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { Search, Filter } from 'lucide-react'
+import { Search, Filter, Trash2, CheckSquare, Square, X } from 'lucide-react'
 
 interface ChatLog {
   id: string
@@ -18,6 +18,7 @@ interface ChatLog {
   groups: {
     name: string
   } | null
+  checked?: boolean
 }
 
 interface Stats {
@@ -31,10 +32,18 @@ export default function LogsPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [stats, setStats] = useState<Stats>({ totalQueries: 0, todayQueries: 0, uniqueUsers: 0 })
+  const [showFilters, setShowFilters] = useState(false)
+  const [selectedLog, setSelectedLog] = useState<ChatLog | null>(null)
+  const [filters, setFilters] = useState({
+    aiModel: '',
+    sensitivity: '',
+    dateFrom: '',
+    dateTo: ''
+  })
 
   useEffect(() => {
     fetchLogs()
-  }, [searchQuery])
+  }, [])
 
   const fetchLogs = async () => {
     try {
@@ -48,7 +57,7 @@ export default function LogsPage() {
       }
 
       const data = await response.json()
-      setLogs(data.logs || [])
+      setLogs((data.logs || []).map((log: ChatLog) => ({ ...log, checked: false })))
       setStats(data.stats || { totalQueries: 0, todayQueries: 0, uniqueUsers: 0 })
     } catch (error) {
       console.error('Error fetching logs:', error)
@@ -57,30 +66,203 @@ export default function LogsPage() {
     }
   }
 
-  const filteredLogs = logs.filter(log => 
-    log.query.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.users?.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const toggleLog = (id: string) => {
+    setLogs(logs.map(log =>
+      log.id === id ? { ...log, checked: !log.checked } : log
+    ))
+  }
+
+  const toggleAll = () => {
+    const allChecked = logs.every(log => log.checked)
+    setLogs(logs.map(log => ({ ...log, checked: !allChecked })))
+  }
+
+  const handleDelete = async () => {
+    const selectedLogs = logs.filter(log => log.checked)
+    if (selectedLogs.length === 0) {
+      alert('Please select logs to delete')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedLogs.length} log(s)? This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const ids = selectedLogs.map(log => log.id).join(',')
+      const response = await fetch(`/api/admin/logs?ids=${ids}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(data.message || 'Logs deleted successfully')
+        fetchLogs() // Refresh the list
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to delete logs')
+      }
+    } catch (error) {
+      console.error('Error deleting logs:', error)
+      alert('Failed to delete logs')
+    }
+  }
+
+  const filteredLogs = logs.filter(log => {
+    // Search filter (query, user name, email, AI model, sensitivity, time)
+    const searchLower = searchQuery.toLowerCase()
+    const matchesSearch = !searchQuery ||
+      log.query.toLowerCase().includes(searchLower) ||
+      log.users?.name.toLowerCase().includes(searchLower) ||
+      log.users?.email.toLowerCase().includes(searchLower) ||
+      log.ai_model.toLowerCase().includes(searchLower) ||
+      log.sensitivity_level.toLowerCase().includes(searchLower) ||
+      new Date(log.created_at).toLocaleString().toLowerCase().includes(searchLower)
+
+    // AI Model filter
+    const matchesAiModel = !filters.aiModel || log.ai_model === filters.aiModel
+
+    // Sensitivity filter
+    const matchesSensitivity = !filters.sensitivity || log.sensitivity_level === filters.sensitivity
+
+    // Date range filter
+    const logDate = new Date(log.created_at)
+    const matchesDateFrom = !filters.dateFrom || logDate >= new Date(filters.dateFrom)
+    const matchesDateTo = !filters.dateTo || logDate <= new Date(filters.dateTo + 'T23:59:59')
+
+    return matchesSearch && matchesAiModel && matchesSensitivity && matchesDateFrom && matchesDateTo
+  })
+
+  const getSensitivityColor = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'restricted':
+        return 'bg-red-100 text-red-800'
+      case 'confidential':
+        return 'bg-orange-100 text-orange-800'
+      case 'internal':
+        return 'bg-blue-100 text-blue-800'
+      case 'public':
+        return 'bg-green-100 text-green-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const uniqueAiModels = Array.from(new Set(logs.map(log => log.ai_model)))
+  const uniqueSensitivityLevels = Array.from(new Set(logs.map(log => log.sensitivity_level)))
+  const selectedCount = logs.filter(log => log.checked).length
 
   return (
     <AdminLayout title="Events">
       <div className="space-y-6">
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
+        {/* Search and Filter Bar */}
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Search logs..."
+              placeholder="Search by query, user, email, AI model, sensitivity, or time..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] bg-gray-50 text-gray-900"
             />
           </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 py-2 rounded-lg border transition flex items-center gap-2 ${
+              showFilters
+                ? 'bg-[#E8E4F3] border-[#E8E4F3] text-black'
+                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Filter size={20} />
+            Filters
+          </button>
+          {selectedCount > 0 && (
+            <button
+              onClick={handleDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2"
+            >
+              <Trash2 size={20} />
+              Delete ({selectedCount})
+            </button>
+          )}
         </div>
 
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Filters</h3>
+              <button
+                onClick={() => {
+                  setFilters({ aiModel: '', sensitivity: '', dateFrom: '', dateTo: '' })
+                }}
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Clear All
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* AI Model Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">AI Model</label>
+                <select
+                  value={filters.aiModel}
+                  onChange={(e) => setFilters({ ...filters, aiModel: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] bg-gray-50 text-gray-900"
+                >
+                  <option value="">All Models</option>
+                  {uniqueAiModels.map(model => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sensitivity Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sensitivity</label>
+                <select
+                  value={filters.sensitivity}
+                  onChange={(e) => setFilters({ ...filters, sensitivity: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] bg-gray-50 text-gray-900"
+                >
+                  <option value="">All Levels</option>
+                  {uniqueSensitivityLevels.map(level => (
+                    <option key={level} value={level}>
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date From Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] bg-gray-50 text-gray-900"
+                />
+              </div>
+
+              {/* Date To Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8E4F3] bg-gray-50 text-gray-900"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg p-4 shadow">
             <p className="text-sm text-gray-900 font-medium">Total Queries</p>
             <p className="text-2xl font-bold text-gray-900">{stats.totalQueries}</p>
@@ -106,6 +288,18 @@ export default function LogsPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left">
+                  <button
+                    onClick={toggleAll}
+                    className="text-gray-600 hover:text-black"
+                  >
+                    {logs.every(log => log.checked) ? (
+                      <CheckSquare size={20} />
+                    ) : (
+                      <Square size={20} />
+                    )}
+                  </button>
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
                   User
                 </th>
@@ -126,20 +320,35 @@ export default function LogsPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                     Loading logs...
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                     No logs found
                   </td>
                 </tr>
               ) : (
                 filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
+                  <tr key={log.id} className="hover:bg-gray-50 cursor-pointer">
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleLog(log.id)
+                        }}
+                        className="text-gray-600 hover:text-black"
+                      >
+                        {log.checked ? (
+                          <CheckSquare size={20} />
+                        ) : (
+                          <Square size={20} />
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => setSelectedLog(log)}>
                       <div className="text-sm font-medium text-gray-900">
                         {log.users?.name || 'Unknown'}
                       </div>
@@ -147,28 +356,24 @@ export default function LogsPage() {
                         {log.users?.email}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" onClick={() => setSelectedLog(log)}>
                       <div className="text-sm text-gray-900 max-w-md truncate">
                         {log.query}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => setSelectedLog(log)}>
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                         {log.ai_model}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => setSelectedLog(log)}>
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        log.sensitivity_level === 'high' 
-                          ? 'bg-red-100 text-red-800'
-                          : log.sensitivity_level === 'medium'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
+                        getSensitivityColor(log.sensitivity_level)
                       }`}>
                         {log.sensitivity_level}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" onClick={() => setSelectedLog(log)}>
                       {new Date(log.created_at).toLocaleString()}
                     </td>
                   </tr>
@@ -178,6 +383,176 @@ export default function LogsPage() {
           </table>
         </div>
       </div>
+
+      {/* Log Details Modal */}
+      {selectedLog && (
+        <div
+          className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedLog(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+              <div>
+                <h3 className="font-semibold text-lg text-gray-900">Event Details</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {new Date(selectedLog.created_at).toLocaleString()}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* User Info */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#E8E4F3] flex items-center justify-center">
+                      <span className="font-semibold text-black">
+                        {(selectedLog.users?.name || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{selectedLog.users?.name || 'Unknown'}</p>
+                      <p className="text-sm text-gray-500">{selectedLog.users?.email}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Query */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">User Query</label>
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <p className="text-gray-900 whitespace-pre-wrap">{selectedLog.query}</p>
+                </div>
+              </div>
+
+              {/* Classification & AI Model */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Classification Level
+                  </label>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      getSensitivityColor(selectedLog.sensitivity_level)
+                    }`}>
+                      {selectedLog.sensitivity_level.charAt(0).toUpperCase() + selectedLog.sensitivity_level.slice(1)}
+                    </span>
+                    <p className="text-xs text-gray-600 mt-2">
+                      {selectedLog.sensitivity_level === 'public' &&
+                        'This query was classified as public information - general knowledge, non-sensitive content.'}
+                      {selectedLog.sensitivity_level === 'internal' &&
+                        'This query was classified as internal - company/organization internal information.'}
+                      {selectedLog.sensitivity_level === 'confidential' &&
+                        'This query was classified as confidential - sensitive business information, financial data.'}
+                      {selectedLog.sensitivity_level === 'restricted' &&
+                        'This query was classified as restricted - highly sensitive data, personal information, security-critical.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    AI Model Used
+                  </label>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <span className="px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                      {selectedLog.ai_model}
+                    </span>
+                    <p className="text-xs text-gray-600 mt-2">
+                      Based on the classification level, this query was routed to {selectedLog.ai_model}.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Classification Process */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  How Classification Works
+                </label>
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                        1
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Query Analysis</p>
+                        <p className="text-sm text-gray-600">
+                          The AI classification model analyzed the query content to determine its sensitivity level.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                        2
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Classification Decision</p>
+                        <p className="text-sm text-gray-600">
+                          Based on keywords, context, and content patterns, the query was classified as <span className="font-semibold">{selectedLog.sensitivity_level}</span>.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                        3
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Model Routing</p>
+                        <p className="text-sm text-gray-600">
+                          The system checked your organization's rules and routed the query to <span className="font-semibold">{selectedLog.ai_model}</span> for processing.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Response */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">AI Response</label>
+                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                  <p className="text-gray-900 whitespace-pre-wrap">{selectedLog.response}</p>
+                </div>
+              </div>
+
+              {/* Group Info (if available) */}
+              {selectedLog.groups && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Group</label>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-gray-900">{selectedLog.groups.name}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 flex justify-end sticky bottom-0 bg-white">
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="px-6 py-2 rounded-full bg-[#E8E4F3] text-black hover:bg-[#d8d0ed] transition font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }

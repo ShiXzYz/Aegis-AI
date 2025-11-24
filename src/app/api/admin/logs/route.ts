@@ -83,3 +83,43 @@ export async function GET(request: Request) {
     )
   }
 }
+
+// DELETE - Delete logs
+export async function DELETE(request: Request) {
+  try {
+    const { userId } = await auth()
+
+    if (!userId || !(await isAdmin())) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const logIds = searchParams.get('ids')
+
+    if (!logIds) {
+      return NextResponse.json({ error: 'Log IDs are required' }, { status: 400 })
+    }
+
+    // Parse comma-separated IDs
+    const idsArray = logIds.split(',')
+
+    // Delete logs
+    const { error } = await supabaseAdmin
+      .from('chat_logs')
+      .delete()
+      .in('id', idsArray)
+
+    if (error) {
+      console.error('Error deleting logs:', error)
+      return NextResponse.json({ error: 'Failed to delete logs' }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Deleted ${idsArray.length} log(s)`
+    })
+  } catch (error) {
+    console.error('Admin logs delete error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
