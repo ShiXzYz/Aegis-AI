@@ -59,6 +59,13 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
+    // --- Get organization details to check for classification model preference ---
+    const { data: organization } = await supabaseAdmin
+      .from('organizations')
+      .select('classification_data_source_id')
+      .eq('id', organizationId)
+      .single()
+
     // --- Check for active data sources in the organization ---
     const { data: dataSources, error: dsError } = await supabaseAdmin
       .from('data_sources')
@@ -80,10 +87,20 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // --- Use the first active data source as the classification model ---
-    const classificationModel = dataSources[0]
+    // --- Use organization's preferred classification model or first active data source ---
+    let classificationModel = dataSources[0]
 
-    console.log('Using classification model:', classificationModel.name)
+    if (organization?.classification_data_source_id) {
+      const preferredModel = dataSources.find(ds => ds.id === organization.classification_data_source_id)
+      if (preferredModel) {
+        classificationModel = preferredModel
+        console.log('Using organization-preferred classification model:', classificationModel.name)
+      } else {
+        console.log('Preferred classification model not found or inactive, using first active:', classificationModel.name)
+      }
+    } else {
+      console.log('No preferred classification model set, using first active:', classificationModel.name)
+    }
 
     // --- Classify the query ---
     let classification = 'public' // Default classification

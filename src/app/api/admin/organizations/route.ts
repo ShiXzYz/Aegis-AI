@@ -159,7 +159,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
-    const { organizationId, name, description } = await request.json()
+    const { organizationId, name, description, classificationDataSourceId } = await request.json()
 
     if (!organizationId) {
       return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 })
@@ -168,6 +168,7 @@ export async function PUT(request: Request) {
     const updates: any = {}
     if (name !== undefined) updates.name = name
     if (description !== undefined) updates.description = description
+    if (classificationDataSourceId !== undefined) updates.classification_data_source_id = classificationDataSourceId
 
     const { data, error } = await supabaseAdmin
       .from('organizations')

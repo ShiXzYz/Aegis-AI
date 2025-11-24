@@ -31,6 +31,8 @@ export default function RulesPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedRule, setSelectedRule] = useState<Rule | null>(null)
+  const [classificationModelId, setClassificationModelId] = useState<string>('')
+  const [organizationId, setOrganizationId] = useState<string>('')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -42,6 +44,7 @@ export default function RulesPage() {
   useEffect(() => {
     fetchRules()
     fetchDataSources()
+    fetchOrganizationSettings()
   }, [])
 
   const fetchRules = async () => {
@@ -68,6 +71,56 @@ export default function RulesPage() {
       }
     } catch (error) {
       console.error('Error fetching data sources:', error)
+    }
+  }
+
+  const fetchOrganizationSettings = async () => {
+    try {
+      // Get current user's organization through users API
+      const usersResponse = await fetch('/api/admin/users')
+      if (usersResponse.ok) {
+        const usersData = await usersResponse.json()
+        if (usersData.users && usersData.users.length > 0) {
+          const currentUserOrg = usersData.users[0].organization_id
+
+          // Then get organization details
+          const orgResponse = await fetch('/api/admin/organizations')
+          if (orgResponse.ok) {
+            const orgData = await orgResponse.json()
+            const org = orgData.organizations?.find((o: any) => o.id === currentUserOrg)
+            if (org) {
+              setOrganizationId(org.id)
+              setClassificationModelId(org.classification_data_source_id || '')
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching organization:', error)
+    }
+  }
+
+  const updateClassificationModel = async (dataSourceId: string) => {
+    try {
+      const response = await fetch('/api/admin/organizations', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId,
+          classificationDataSourceId: dataSourceId || null
+        })
+      })
+
+      if (response.ok) {
+        setClassificationModelId(dataSourceId)
+        alert('Classification model updated successfully')
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to update classification model')
+      }
+    } catch (error) {
+      console.error('Error updating classification model:', error)
+      alert('Failed to update classification model')
     }
   }
 
@@ -221,6 +274,41 @@ export default function RulesPage() {
           <Plus size={20} />
           Add Rule
         </button>
+      </div>
+
+      {/* Classification Model Selector */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 mb-6 border border-purple-200">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
+            <Sparkles size={24} className="text-white" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-900 mb-2">Classification AI Model</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Select which AI model should analyze queries to determine their sensitivity level (Public, Internal, Confidential, or Restricted).
+              This model will classify all queries before routing them to the appropriate response model based on your rules below.
+            </p>
+            <div className="flex items-center gap-3">
+              <select
+                value={classificationModelId}
+                onChange={(e) => updateClassificationModel(e.target.value)}
+                className="flex-1 px-4 py-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+              >
+                <option value="">Auto-select (use first active model)</option>
+                {dataSources.filter(ds => ds).map((source) => (
+                  <option key={source.id} value={source.id}>
+                    {source.name} {source.model_name ? `(${source.model_name})` : ''}
+                  </option>
+                ))}
+              </select>
+              {classificationModelId && (
+                <span className="text-sm text-green-700 font-medium whitespace-nowrap">
+                  ✓ Custom model selected
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Rules List */}
