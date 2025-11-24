@@ -122,24 +122,28 @@ export default function ChatPage() {
         {/* Organization Display/Join Button - only for non-admin users */}
         {!isAdmin && (
           organization ? (
-            // Show current organization
+            // Show current organization (clickable)
             sidebarExpanded ? (
-              <div className="w-full px-4 mb-6">
-                <div className="bg-white/60 rounded-full py-3 px-4 flex items-center gap-2">
+              <button
+                onClick={() => router.push('/my-organization')}
+                className="w-full px-4 mb-6"
+              >
+                <div className="bg-white/60 hover:bg-white/80 rounded-full py-3 px-4 flex items-center gap-2 transition">
                   <Building2 size={20} className="text-black" />
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 text-left">
                     <p className="text-xs text-black/70 font-medium">Organization</p>
                     <p className="text-sm font-semibold text-black truncate">{organization.name}</p>
                   </div>
                 </div>
-              </div>
+              </button>
             ) : (
-              <div
-                className="w-12 h-12 bg-white/60 rounded-full transition flex items-center justify-center mx-auto mb-6"
+              <button
+                onClick={() => router.push('/my-organization')}
+                className="w-12 h-12 bg-white/60 hover:bg-white/80 rounded-full transition flex items-center justify-center mx-auto mb-6"
                 title={organization.name}
               >
                 <Building2 size={20} className="text-black" />
-              </div>
+              </button>
             )
           ) : (
             // Show join button if no organization
